@@ -1,0 +1,32 @@
+{
+  "_fixture": "REAL capture: claude -p \"Reply with exactly: CLAUDE-OK\" --output-format json, Claude Code 2.1.284, 2026-09-30. Long sub-objects trimmed; every field the recipe reads is verbatim.",
+  "type": "result",
+  "subtype": "success",
+  "is_error": false,
+  "result": "CLAUDE-OK",
+  "session_id": "717c86c7-c63e-46c5-a9bc-cc951ce0f3a5",
+  "uuid": "92922161-b360-44c9-9c42-e8c6be9f002c",
+  "duration_ms": 932,
+  "duration_api_ms": 822,
+  "num_turns": 1,
+  "terminal_reason": "completed",
+  "stop_reason": "end_turn",
+  "total_cost_usd": 0.094025,
+  "usage": {
+    "input_tokens": 18775,
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0,
+    "output_tokens": 6,
+    "output_tokens_details": { "thinking_tokens": 0 },
+    "service_tier": "standard"
+  },
+  "modelUsage": {
+    "deepseek-v4-flash": {
+      "inputTokens": 18775,
+      "outputTokens": 6,
+      "costUSD": 0.094025,
+      "contextWindow": 200000
+    }
+  },
+  "permission_denials": []
+}

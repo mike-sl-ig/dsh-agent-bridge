@@ -1,0 +1,96 @@
+{
+  "id": "opencode",
+  "label": "OpenCode",
+  "vendor": "opencode.ai",
+  "cost": "free",
+  "homepage": "https://opencode.ai",
+  "notes": "Streams JSONL events (step_start / tool_use / text / step_finish). The final answer is the concatenation of type=text events; cost is always 0 on the free model set.",
+
+  "discover": {
+    "env": ["OPENCODE_CLI"],
+    "bin": ["opencode", "opencode-cli"],
+    "paths": {
+      "win32": [
+        "%LOCALAPPDATA%\\Programs\\@opencodedesktop\\resources\\opencode-cli.exe",
+        "%APPDATA%\\ai.opencode.desktop\\cli\\*\\opencode-cli.exe",
+        "%LOCALAPPDATA%\\opencode\\bin\\opencode.exe"
+      ],
+      "darwin": [
+        "/opt/homebrew/bin/opencode",
+        "/usr/local/bin/opencode",
+        "~/.opencode/bin/opencode",
+        "~/.local/bin/opencode"
+      ],
+      "linux": [
+        "/usr/local/bin/opencode",
+        "/usr/bin/opencode",
+        "~/.opencode/bin/opencode",
+        "~/.local/bin/opencode"
+      ]
+    }
+  },
+
+  "version": {
+    "args": ["--version"],
+    "match": "opencode",
+    "timeoutMs": 30000
+  },
+
+  "run": {
+    "argv": ["run", "--auto", "--format", "json"],
+    "prompt": { "via": "positional" },
+    "model": { "flag": ["-m"] },
+    "agent": { "flag": ["--agent"] },
+    "session": { "flag": ["-s"] },
+    "resume": { "flag": ["-c"] },
+    "files": { "flag": ["-f"] },
+    "workdir": { "via": "cwd" }
+  },
+
+  "output": {
+    "format": "jsonl",
+    "answer": { "where": { "type": "text" }, "pick": "part.text" },
+    "session": { "pick": "sessionID" },
+    "tool": {
+      "where": { "type": "tool_use" },
+      "name": "part.tool",
+      "input": "part.state.input",
+      "status": "part.state.status",
+      "error": "part.state.error"
+    },
+    "usage": {
+      "where": { "type": "step_finish" },
+      "cost": "part.cost",
+      "input": "part.tokens.input",
+      "output": "part.tokens.output",
+      "reasoning": "part.tokens.reasoning",
+      "cacheRead": "part.tokens.cache.read"
+    }
+  },
+
+  "models": [
+    "opencode/longcat-2.5-preview-free",
+    "opencode/big-pickle",
+    "opencode/ling-3.0-flash-fin-free",
+    "opencode/mimo-v2.6-flash-free",
+    "opencode/muse-spark-1.3-contributor-free",
+    "opencode/nemotron-3-ultra-free",
+    "opencode/nemotron-3.5-lightning-free",
+    "opencode/space-bunny-free"
+  ],
+
+  "caps": {
+    "model": true,
+    "agent": true,
+    "session": true,
+    "resume": true,
+    "files": true,
+    "autoApprove": true,
+    "structured": true
+  },
+
+  "safety": {
+    "autoApproveFlag": "--auto",
+    "note": "Runs with --auto, so the agent may edit files inside its workdir. It also needs an unsandboxed process: DSH's ACL sandbox denies the CLI its own state directory."
+  }
+}

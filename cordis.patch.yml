@@ -1,0 +1,12 @@
+# dsh-agent-bridge bundle patch.
+#
+# `insert` mounts this plugin's loader row. `name: 'dsh-agent-bridge'` resolves
+# the package entry (lib/host.js — the tools and the /api/agent.bridge route);
+# because package.json also declares `dsh.client`, the client module system
+# serves lib/client.js to the page as the agent picker button.
+#
+# The row id stays stable (`agent-bridge`) so that patches, the state file and
+# the button id keep working across versions.
+- insert:
+    - id: agent-bridge
+      name: 'dsh-agent-bridge'

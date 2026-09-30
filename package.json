@@ -1,0 +1,52 @@
+{
+  "name": "dsh-agent-bridge",
+  "version": "0.1.1",
+  "description": "Bridge DeepSeek Harness to whatever coding-agent CLI is installed (OpenCode, Claude Code, Codex, Gemini, ...) through data-driven recipes: auto-discovery, capability-driven UI, per-run reports.",
+  "keywords": [
+    "dsh",
+    "dsh-plugin",
+    "deepseek-harness",
+    "cordis",
+    "agent",
+    "bridge",
+    "cli",
+    "opencode",
+    "claude-code",
+    "codex",
+    "gemini",
+    "recipe"
+  ],
+  "license": "MIT",
+  "type": "module",
+  "main": "lib/host.js",
+  "exports": {
+    ".": "./lib/host.js",
+    "./client": "./lib/client.js",
+    "./package.json": "./package.json",
+    "./cordis.patch.yml": "./cordis.patch.yml",
+    "./recipes/*.json": "./lib/recipes/*.json"
+  },
+  "files": [
+    "lib/**",
+    "fixtures/**",
+    "cordis.patch.yml",
+    "README.md",
+    "CHANGELOG.md",
+    "LICENSE"
+  ],
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web"
+    }
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "test": "node tests/client-boot.mjs && node tests/client-render.mjs && node tests/recipe-wizard.mjs && node tests/parse-fixtures.mjs && node tests/parse-recorded.mjs && node tests/stdin-transport.mjs && node tests/discovery-matrix.mjs && node tests/registry-import.mjs && node tests/pack-check.mjs && node tests/migration.mjs && node tests/host-harness.mjs",
+    "test:smoke": "node tests/launch-smoke.mjs"
+  }
+}
