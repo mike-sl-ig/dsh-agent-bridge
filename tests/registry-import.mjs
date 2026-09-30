@@ -10,12 +10,19 @@ import { createServer } from 'node:http'
 import { existsSync, mkdtempSync, readdirSync, readFileSync, unlinkSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { apply } from '../lib/host.js'
 
-// Disposable home when the machine has none (CI) — see tests/host-harness.mjs.
+/**
+ * The host half resolves DSH_HOME when it is IMPORTED, so a test constant of its
+ * own is not enough — it must be exported to the module before the import. On a
+ * CI runner the host would otherwise fall back to `~/.dsh` while the test looked
+ * in a temp directory, and an assertion about "written state" would silently
+ * check the wrong path (this is exactly how it failed the first time).
+ */
 const DSH_HOME = process.env.DSH_HOME
   || (existsSync('C:\\Users\\ROG\\.dsh') ? 'C:\\Users\\ROG\\.dsh' : mkdtempSync(join(tmpdir(), 'agent-bridge-home-')))
+process.env.DSH_HOME = DSH_HOME
 const LOCAL_DIR = join(DSH_HOME, 'tools', 'agent-bridge', 'recipes')
+const { apply } = await import('../lib/host.js')
 
 let failures = 0
 const check = (name, ok, detail) => {

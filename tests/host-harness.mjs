@@ -12,21 +12,24 @@ import { existsSync, mkdtempSync, readFileSync, unlinkSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { tmpdir } from 'node:os'
 import { fileURLToPath } from 'node:url'
-import { apply } from '../lib/host.js'
 import { findLosslessViolation, isLosslessJson } from './lossless.mjs'
 
 const PKG_ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 
 /**
- * Where written state goes. The plugin's own default home is machine-specific, so
- * a machine that has none (CI) gets a disposable directory instead of a literal
- * `C:\Users\...` path — which on Linux would be created as a directory with that
- * very name inside the checkout.
+ * Where written state goes. The host half resolves DSH_HOME when it is IMPORTED,
+ * so this must be exported to the module before importing it: a constant of the
+ * test's own lets the host fall back to `~/.dsh` while the assertions look
+ * somewhere else — which is exactly how this failed on CI. A machine with no DSH
+ * home gets a disposable directory instead of a literal `C:\Users\...` path,
+ * which on Linux would be created as a directory with that very name.
  */
 const DSH_HOME = process.env.DSH_HOME
   || (existsSync('C:\\Users\\ROG\\.dsh') ? 'C:\\Users\\ROG\\.dsh' : mkdtempSync(join(tmpdir(), 'agent-bridge-home-')))
+process.env.DSH_HOME = DSH_HOME
 const LAST_RUN = join(DSH_HOME, 'tools', 'agent-bridge', 'logs', 'last-run.json')
 const WORK_DIR = join(DSH_HOME, 'tools', 'agent-bridge', 'work')
+const { apply } = await import('../lib/host.js')
 
 let failures = 0
 const check = (name, ok, detail) => {
