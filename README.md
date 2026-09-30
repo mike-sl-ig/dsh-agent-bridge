@@ -1,6 +1,13 @@
 # dsh-agent-bridge
 
+**English** | [简体中文](README.zh-CN.md)
+
 [![CI](https://github.com/mike-sl-ig/dsh-agent-bridge/actions/workflows/ci.yml/badge.svg)](https://github.com/mike-sl-ig/dsh-agent-bridge/actions/workflows/ci.yml)
+[![npm version](https://img.shields.io/npm/v/dsh-agent-bridge.svg)](https://www.npmjs.com/package/dsh-agent-bridge)
+[![npm downloads](https://img.shields.io/npm/dm/dsh-agent-bridge.svg)](https://www.npmjs.com/package/dsh-agent-bridge)
+[![license](https://img.shields.io/npm/l/dsh-agent-bridge.svg)](LICENSE)
+[![node](https://img.shields.io/node/v/dsh-agent-bridge.svg)](package.json)
+[![dependencies](https://img.shields.io/badge/dependencies-0-brightgreen.svg)](package.json)
 
 Bridge **DeepSeek Harness** to whatever coding-agent CLI your machine already has — OpenCode, Claude Code, Codex, Gemini, or anything you write a recipe for — and use it as an independent worker for cross-model verification, cheap bulk work, or a second opinion.
 

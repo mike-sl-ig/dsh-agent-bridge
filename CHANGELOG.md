@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.2
+
+- Docs only: a full **Chinese README** (`README.zh-CN.md`) with a language switcher, plus badges for CI / npm version / downloads / license / node / zero dependencies. Both READMEs ship in the package.
+- Tooling: `pack-check` now also asserts that `package.json` carries no byte-order mark — a BOM is legal UTF-8 but breaks `JSON.parse` everywhere else while npm tolerates it, so nothing else would notice (found the hard way).
+
 ## 0.1.1
 
 - **Fix (live-app breaking):** tool results are now returned as content-part blocks. DSH calls `render(args, value)` and treats the result as blocks, so returning a bare string made every tool call fail in the running app with `content.some is not a function`. The contract is now asserted per tool by the harness.

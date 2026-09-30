@@ -1,6 +1,6 @@
 {
   "name": "dsh-agent-bridge",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Bridge DeepSeek Harness to whatever coding-agent CLI is installed (OpenCode, Claude Code, Codex, Gemini, ...) through data-driven recipes: auto-discovery, capability-driven UI, per-run reports.",
   "keywords": [
     "dsh",
@@ -40,6 +40,7 @@
     "fixtures/**",
     "cordis.patch.yml",
     "README.md",
+    "README.zh-CN.md",
     "CHANGELOG.md",
     "LICENSE"
   ],

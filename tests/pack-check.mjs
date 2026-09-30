@@ -21,12 +21,17 @@ const npm = process.platform === 'win32' ? 'npm.cmd' : 'npm'
 const raw = execFileSync(npm, ['pack', '--dry-run', '--json'], { cwd: ROOT, encoding: 'utf8', shell: process.platform === 'win32' })
 const [entry] = JSON.parse(raw)
 const files = entry.files.map((f) => f.path.replace(/\\/g, '/'))
-const manifest = JSON.parse(readFileSync(join(ROOT, 'package.json'), 'utf8'))
+const manifestText = readFileSync(join(ROOT, 'package.json'), 'utf8')
+// A BOM is legal UTF-8 but breaks JSON.parse for every other tool. npm tolerates
+// it, so nothing else would have caught it — and this bit us once, through a
+// PowerShell `Set-Content -Encoding UTF8` round trip on this very file.
+const manifest = JSON.parse(manifestText.replace(/^\uFEFF/, ''))
+check('package.json has no byte-order mark', !manifestText.startsWith('\uFEFF'))
 
 console.log(`packing ${manifest.name}@${manifest.version}: ${files.length} files, ${(entry.size / 1024).toFixed(1)} KiB\n`)
 
 const required = [
-  'package.json', 'cordis.patch.yml', 'README.md', 'LICENSE',
+  'package.json', 'cordis.patch.yml', 'README.md', 'README.zh-CN.md', 'LICENSE',
   'lib/host.js', 'lib/client.js', 'lib/engine.js', 'lib/launch.js', 'lib/recipe.js',
   'lib/recipes/opencode.json', 'lib/recipes/claude.json',
   'fixtures/claude-result.json', 'fixtures/opencode-result.jsonl',
