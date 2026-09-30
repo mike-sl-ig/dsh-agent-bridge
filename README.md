@@ -17,11 +17,25 @@ The plugin never hard-codes a vendor. An agent is described by a **JSON recipe**
 
 ## Install
 
+From npm (once published):
+
 ```
 dsh plugin --profile <your-profile> add dsh-agent-bridge
 ```
 
-Then reload the page (a new client plugin only appears after the page loads the client graph again).
+Or straight from a release artifact, without npm:
+
+```
+dsh plugin --profile <your-profile> add https://github.com/mike-sl-ig/dsh-agent-bridge/releases/download/v0.1.1/dsh-agent-bridge-0.1.1.tgz
+```
+
+Or from a checkout:
+
+```
+dsh plugin --profile <your-profile> add /absolute/path/to/dsh-agent-bridge
+```
+
+Then reload the page (a new client plugin only appears after the page loads the client graph again). Nothing is installed beyond this package: it declares **no runtime dependencies** and **no install-time lifecycle hooks**.
 
 ## Roles
 
