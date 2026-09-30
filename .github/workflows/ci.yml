@@ -1,0 +1,47 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: ${{ matrix.os }} · node ${{ matrix.node }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      # A failure on one platform must not hide the verdict of the others.
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        node: ['20', '22']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+
+      # The package has no runtime dependencies, so there is nothing to install:
+      # the suite runs on Node itself. LIVE runs (which need an agent CLI and, for
+      # the paid adapter, real credits) are gated off here — they are opt-in via
+      # LIVE_PAID=1 / LIVE_TOOLS=1 and documented in the README.
+      - name: Offline suite (no agent CLI required)
+        run: npm test
+        env:
+          SKIP_LIVE_RUN: '1'
+
+  publish-readiness:
+    name: publish readiness
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      # Packs the package, then asserts the manifest only promises files that are
+      # really inside the tarball and that no install-time lifecycle hook exists.
+      - name: Pack / publish checks
+        run: node tests/pack-check.mjs

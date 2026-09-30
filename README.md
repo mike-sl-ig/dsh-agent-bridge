@@ -1,5 +1,7 @@
 # dsh-agent-bridge
 
+[![CI](https://github.com/mike-sl-ig/dsh-agent-bridge/actions/workflows/ci.yml/badge.svg)](https://github.com/mike-sl-ig/dsh-agent-bridge/actions/workflows/ci.yml)
+
 Bridge **DeepSeek Harness** to whatever coding-agent CLI your machine already has — OpenCode, Claude Code, Codex, Gemini, or anything you write a recipe for — and use it as an independent worker for cross-model verification, cheap bulk work, or a second opinion.
 
 The plugin never hard-codes a vendor. An agent is described by a **JSON recipe**, so adding one — or fixing one whose CLI changed its flags — is a data change, not a code change. Recipes are data on purpose: that is what makes it safe to fetch them from a community registry later.
@@ -103,7 +105,9 @@ Both supported ways are data-only:
 
 ## Publishing
 
-`npm test` runs eight suites offline (no network, no DSH). `pack-check.mjs` packs the package with `npm pack --dry-run` and asserts that the manifest only promises files that are really inside the tarball, that **no install-time lifecycle hook** exists, and that `tests/`, `node_modules/` and dotfiles stay out. Current payload: **14 files, ~35 KiB, zero runtime dependencies**.
+`npm test` runs **eleven suites offline** (no network, no DSH, no agent CLI, nothing to install — the package has no runtime dependencies). `pack-check.mjs` packs the package with `npm pack --dry-run` and asserts that the manifest only promises files that are really inside the tarball, that **no install-time lifecycle hook** exists, and that `tests/`, `node_modules/` and dotfiles stay out. Current payload: **14 files, ~38 KiB, zero runtime dependencies**.
+
+CI runs that suite on **ubuntu / macos / windows × node 20 / 22**, which is what backs the cross-platform claim; the runs that need a real agent CLI (and, for the paid adapter, real credits) are opt-in through `LIVE_PAID=1` / `LIVE_TOOLS=1` and stay out of CI.
 
 ## Notes for contributors
 

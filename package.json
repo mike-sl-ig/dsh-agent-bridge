@@ -16,6 +16,15 @@
     "gemini",
     "recipe"
   ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mike-sl-ig/dsh-agent-bridge.git"
+  },
+  "homepage": "https://github.com/mike-sl-ig/dsh-agent-bridge#readme",
+  "bugs": {
+    "url": "https://github.com/mike-sl-ig/dsh-agent-bridge/issues"
+  },
+  "author": "mike-sl-ig",
   "license": "MIT",
   "type": "module",
   "main": "lib/host.js",
