@@ -8,15 +8,23 @@
  * direct (no service) launch path.
  */
 
-import { existsSync, readFileSync, unlinkSync } from 'node:fs'
+import { existsSync, mkdtempSync, readFileSync, unlinkSync } from 'node:fs'
 import { dirname, join } from 'node:path'
+import { tmpdir } from 'node:os'
 import { fileURLToPath } from 'node:url'
 import { apply } from '../lib/host.js'
 import { findLosslessViolation, isLosslessJson } from './lossless.mjs'
 
 const PKG_ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 
-const DSH_HOME = process.env.DSH_HOME || 'C:\\Users\\ROG\\.dsh'
+/**
+ * Where written state goes. The plugin's own default home is machine-specific, so
+ * a machine that has none (CI) gets a disposable directory instead of a literal
+ * `C:\Users\...` path — which on Linux would be created as a directory with that
+ * very name inside the checkout.
+ */
+const DSH_HOME = process.env.DSH_HOME
+  || (existsSync('C:\\Users\\ROG\\.dsh') ? 'C:\\Users\\ROG\\.dsh' : mkdtempSync(join(tmpdir(), 'agent-bridge-home-')))
 const LAST_RUN = join(DSH_HOME, 'tools', 'agent-bridge', 'logs', 'last-run.json')
 const WORK_DIR = join(DSH_HOME, 'tools', 'agent-bridge', 'work')
 
@@ -113,8 +121,15 @@ const initial = await routeFetch('?last=1')
 check('route returns state + agents + features',
   Boolean(initial.state) && Array.isArray(initial.agents) && Array.isArray(initial.features),
   `agents=${initial.agents.length}`)
-check('route finds the opencode recipe', initial.agents.some((a) => a.id === 'opencode' && a.installed),
+const opencodeRow = initial.agents.find((a) => a.id === 'opencode')
+check('route lists the opencode recipe',
+  Boolean(opencodeRow) && initial.agents.some((a) => a.id === 'claude'),
   JSON.stringify(initial.agents.map((a) => `${a.id}:${a.installed ? 'found' : 'missing'}`)))
+if (opencodeRow && opencodeRow.installed) {
+  check('the installed opencode binary is the one the route reports', /opencode/i.test(opencodeRow.path), opencodeRow.path)
+} else {
+  console.log('SKIP opencode binary discovery: not installed on this machine (tests/discovery-matrix.mjs covers discovery)')
+}
 check('every agent carries cost + caps', initial.agents.every((a) => typeof a.cost === 'string' && a.caps))
 
 const saved = await routeFetch('?save=1&auto=0&defaultAgent=opencode&defaultMode=verify&verify=1&bulk=0&second=0&agent=opencode&model=opencode/mimo-v2.6-flash-free')
@@ -135,10 +150,16 @@ check('the paid agent is flagged as paid, not hidden',
 
 const probed = await tools.get('agent_list').execute({ probe: true })
 const opencodeProbe = (probed.probed || []).find((p) => p.id === 'opencode')
-check('probe reports an installed, usable opencode', Boolean(opencodeProbe && opencodeProbe.ok),
-  opencodeProbe ? `exit=${opencodeProbe.exitCode} version=${opencodeProbe.version}` : 'no probe result')
-check('probe surfaces a version string', Boolean(opencodeProbe && /opencode/i.test(opencodeProbe.version || '')),
-  opencodeProbe && opencodeProbe.version)
+// `--version` can only be asserted where the CLI exists. The probe PLUMBING is
+// covered everywhere by the recorded fixtures, so a machine without it skips
+// rather than fails.
+if (opencodeProbe && opencodeProbe.installed) {
+  check('probe reports an installed, usable opencode', Boolean(opencodeProbe.ok),
+    `exit=${opencodeProbe.exitCode} version=${opencodeProbe.version}`)
+  check('probe surfaces a version string', /opencode/i.test(opencodeProbe.version || ''), opencodeProbe.version)
+} else {
+  console.log('SKIP --version probe: no opencode installation on this machine')
+}
 
 const mode = await tools.get('agent_mode').execute({ action: 'get' })
 check('agent_mode get returns state + agents', Boolean(mode.state) && Array.isArray(mode.agents))

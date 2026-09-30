@@ -35,12 +35,28 @@ check('buildArgs routes model/session/resume to their flags',
   built.args.includes('-m') && built.args.includes('opencode/big-pickle') && built.args.includes('-s') && built.args.includes('ses_x') && built.args.includes('-c'),
   JSON.stringify(built.args))
 
-check('discover() returns at least one candidate on this machine', discover(recipe).length > 0,
-  JSON.stringify(discover(recipe).slice(0, 3)))
+// Machine-dependent: true only where the CLI is actually installed.
+const candidates = discover(recipe)
+if (candidates.length) {
+  check('discover() returns at least one candidate on this machine', true, JSON.stringify(candidates.slice(0, 3)))
+} else {
+  console.log('SKIP discover-on-this-machine: no OpenCode installation here (tests/discovery-matrix.mjs covers discovery with synthetic trees)')
+}
 
 // ---- parse every recorded stream ----------------------------------------
-const files = readdirSync(LOGS).filter((f) => f.endsWith('.out.jsonl'))
-check('found recorded streams to parse', files.length > 0, `${files.length} files`)
+// The recordings live in a user's DSH home, so they exist on a developer machine
+// and never on CI. When they are absent this suite reports what it DID check and
+// skips the replay instead of failing. The regression net for a real stream is
+// global anyway: fixtures/opencode-result.jsonl is replayed by
+// tests/parse-fixtures.mjs on every run, on every platform.
+let files = []
+try { files = readdirSync(LOGS).filter((f) => f.endsWith('.out.jsonl')) } catch { files = [] }
+if (files.length === 0) {
+  console.log(`SKIP recorded-stream replay: no *.out.jsonl under ${LOGS}`)
+  console.log(`\n${failures === 0 ? 'RECIPE ENGINE REGRESSION: PASS (no local recordings to replay)' : `RECIPE ENGINE REGRESSION: FAIL (${failures})`}`)
+  process.exit(failures === 0 ? 0 : 1)
+}
+check('found recorded streams to parse', true, `${files.length} files`)
 
 let withAnswer = 0
 let withTools = 0

@@ -64,10 +64,16 @@ check('claude: is_error forces Ok=false even with exit code 0',
 const timedOut = parseFixture(claude, claudeOut, { timedOut: true, exitCode: null })
 check('claude: a timeout beats a parseable answer', timedOut.Ok === false && timedOut.TimedOut === true)
 
-// Discovery must prefer the real entry behind a package-manager shim.
+// Discovery must prefer the real entry behind a package-manager shim. This is
+// the ONLY check in this file that depends on the machine having that CLI
+// installed, so it SKIPS instead of failing when there is none: CI runners have
+// no agent installed, and tests/discovery-matrix.mjs covers the logic itself
+// with synthetic trees for win32, darwin and linux.
 const found = discover(claude)
-check('claude: discovery returns at least one candidate', found.length > 0, JSON.stringify(found.slice(0, 3)))
-if (found.length) {
+if (found.length === 0) {
+  console.log('SKIP claude discovery: no Claude Code installation on this machine')
+} else {
+  check('claude: discovery returns at least one candidate', true, JSON.stringify(found.slice(0, 3)))
   const first = found[0].path
   const isRealEntry = /claude(\.exe)?$/i.test(first) && !/\.(ps1|cmd|bat)$/i.test(first)
   check('claude: the spawnable entry outranks any .ps1/.cmd shim', isRealEntry, `${first} (source=${found[0].source})`)

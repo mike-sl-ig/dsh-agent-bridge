@@ -7,11 +7,14 @@
  */
 
 import { createServer } from 'node:http'
-import { existsSync, readdirSync, readFileSync, unlinkSync } from 'node:fs'
+import { existsSync, mkdtempSync, readdirSync, readFileSync, unlinkSync } from 'node:fs'
+import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { apply } from '../lib/host.js'
 
-const DSH_HOME = process.env.DSH_HOME || 'C:\\Users\\ROG\\.dsh'
+// Disposable home when the machine has none (CI) — see tests/host-harness.mjs.
+const DSH_HOME = process.env.DSH_HOME
+  || (existsSync('C:\\Users\\ROG\\.dsh') ? 'C:\\Users\\ROG\\.dsh' : mkdtempSync(join(tmpdir(), 'agent-bridge-home-')))
 const LOCAL_DIR = join(DSH_HOME, 'tools', 'agent-bridge', 'recipes')
 
 let failures = 0
