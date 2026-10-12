@@ -76,5 +76,20 @@ const noConfiguredModel = planInjection(on({ agents: {} }), { turn: 4, messages:
 check('an agent with no configured model still injects, without a model',
   targetOf(noConfiguredModel) === 'opencode', targetOf(noConfiguredModel))
 
+/* ---- 0.4.0: the reminder lists the whole candidate pool ---- */
+const pooled = on({
+  pool: ['opencode', 'workbuddy'],
+  defaultAgent: 'opencode',
+  agents: { opencode: { model: 'opencode/mimo-v2.6-flash-free' }, workbuddy: { model: 'fast-model' } },
+})
+const pooledText = planInjection(pooled, { turn: 7, messages: [{ role: 'user' }] }, null).text
+check('the reminder lists every pooled agent', pooledText.includes('opencode') && pooledText.includes('workbuddy'))
+check('each candidate carries its own model',
+  pooledText.includes('opencode/mimo-v2.6-flash-free') && pooledText.includes('fast-model'), pooledText)
+check('and it hands the choice to the model', /由你判断/.test(pooledText))
+check('a pooled agent without a configured model still appears', planInjection(on({ pool: ['claude'], defaultAgent: 'claude', agents: {} }), { turn: 8, messages: [{ role: 'user' }] }, null).text.includes('claude'))
+const emptyPool = planInjection(on({ pool: [], defaultAgent: 'opencode' }), { turn: 9, messages: [{ role: 'user' }] }, null).text
+check('an empty pool falls back to naming the default agent', emptyPool.includes('opencode') && !emptyPool.includes('候选 agent'))
+
 console.log(failures ? `\n${failures} failure(s)` : '\nall good')
 process.exit(failures ? 1 : 0)
