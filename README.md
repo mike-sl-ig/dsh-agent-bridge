@@ -15,7 +15,7 @@ The plugin never hard-codes a vendor. An agent is described by a **JSON recipe**
 
 ## What it gives you
 
-- **A button in the session header.** Pick the default agent, enable any of the three role features, choose a model, and see what the last run did.
+- **A button in the session header.** Switch on a pool of candidate agents (each keeps its own model picker), enable any of the three role features, and see what the last run did. An unnamed call uses the first *installed* pool member; `defaultAgent` stays in the state file for 0.3.x consumers.
 - **Three tools** the model can call:
   - `agent_list` — which agents were found, where, what they cost, what they support (`probe: true` also runs `--version`).
   - `agent_run` — run one agent as an independent worker; returns the answer, session id, timing, tool calls and the path of a run report.

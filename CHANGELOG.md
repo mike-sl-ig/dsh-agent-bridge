@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.4.0
+
+- **More than one agent can be switched on at once.** The panel used to radio-select a single
+  "default agent", which contradicted what the role features are for: cross-model verification
+  wants a *different* model family, and a second opinion wants a different head. It is now a pool
+  (checkboxes), every pooled agent keeps its own model picker, and the reminder lists the whole
+  pool and hands the choice back: "用哪个、用几个由你判断".
+- **Behaviour change worth knowing:** a `verify` call may no longer use the agent you had selected
+  as "primary" — picking a different family is the point. The first *installed* pool member is the
+  default when a call names none.
+- `defaultAgent` is kept in the state file (0.3.x consumers read it) but is now derived from the
+  pool, so the two cannot disagree. An old state migrates losslessly: the single selected agent
+  becomes a one-member pool.
+
 ## 0.3.0
 
 - **`catalog.kind: "argv"` was a promise the schema made and the code did not keep.** The validator
