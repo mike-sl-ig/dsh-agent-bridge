@@ -219,14 +219,19 @@ const notLoggedIn = renderPanel({
   ...withCatalog,
   agents: [{ ...withCatalog.agents[0], balance: { state: 'unauthenticated', packages: [] } }],
 })
-check('unauthenticated says so in words', notLoggedIn.includes('未登录'))
+/* "未登录" would be a LIE: the CLI is signed in (measured 2026-10-13) — it just
+ * keeps the credential encrypted at rest, so the plugin cannot read a token.
+ * The panel must say what it actually needs, not misreport the user's account. */
+check('unauthenticated explains what the plugin actually needs',
+  notLoggedIn.includes('CODEBUDDY_AUTH_TOKEN'), notLoggedIn.slice(0, 200))
+check('and never claims the CLI is signed out', !notLoggedIn.includes('未登录'))
 check('unauthenticated shows no number', !/剩余\s*\d/.test(notLoggedIn))
 
 const unsupported = renderPanel({
   ...withCatalog,
   agents: [{ ...withCatalog.agents[0], balance: { state: 'unsupported', packages: [] } }],
 })
-check('unsupported renders no balance row', !unsupported.includes('未登录') && !unsupported.includes('余额获取失败'))
+check('unsupported renders no balance row', !unsupported.includes('CODEBUDDY_AUTH_TOKEN') && !unsupported.includes('余额获取失败'))
 
 const reminded = renderPanel({ ...withCatalog, remind: true })
 check('the panel offers the advisory reminder switch', reminded.includes('自动提醒'))
