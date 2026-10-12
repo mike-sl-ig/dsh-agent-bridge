@@ -335,6 +335,18 @@ if (process.env.LIVE_TOOLS === '1') {
   try { unlinkSync(proofPath) } catch { /* leave it if it is already gone */ }
 }
 
+/* ---- 0.2.0: normalized models + balance in the agent view ---- */
+const listTool = tools.get('agent_list')
+const listed = await listTool.execute({}, {})
+const wbAgent = (listed.agents || []).find((a) => a.id === 'workbuddy')
+check('workbuddy shows up in the agent list', Boolean(wbAgent))
+check('its models are objects', wbAgent && wbAgent.models.every((m) => typeof m === 'object'))
+check('the legacy modelIds array is still there', wbAgent && Array.isArray(wbAgent.modelIds))
+check('the model ids match the models', wbAgent && wbAgent.models.every((m) => wbAgent.modelIds.includes(m.id)))
+check('every model carries a tier', wbAgent && wbAgent.models.every((m) => ['free', 'paid', 'unknown'].includes(m.tier)))
+check('the balance state is present', wbAgent && ['ok', 'unauthenticated', 'unsupported', 'error'].includes(wbAgent.balance.state))
+check('with no token the balance is unauthenticated', wbAgent && wbAgent.balance.state === 'unauthenticated')
+
 console.log(`\nwarnings during mount: ${warnings.length}`)
 console.log(`${failures === 0 ? 'HOST HARNESS: PASS' : `HOST HARNESS: FAIL (${failures})`}`)
 process.exit(failures === 0 ? 0 : 1)
