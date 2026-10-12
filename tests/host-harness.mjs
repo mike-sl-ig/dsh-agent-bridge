@@ -42,8 +42,10 @@ const check = (name, ok, detail) => {
 const tools = new Map()
 const routes = []
 const warnings = []
+const listeners = new Map()
 const ctx = {
   logger: () => ({ warn: (...args) => { warnings.push(args.join(' ')); console.log('[warn]', ...args) } }),
+  on: (event, handler) => { listeners.set(event, handler); return () => listeners.delete(event) },
   get: (key) => {
     if (key === 'tools') return { register: (definition) => { tools.set(definition.name, definition); return () => {} } }
     if (key === 'connection') return { fetch: { register: (route) => { routes.push(route); return () => {} } } }
@@ -371,6 +373,28 @@ check('the model ids match the models', wbAgent && wbAgent.models.every((m) => w
 check('every model carries a tier', wbAgent && wbAgent.models.every((m) => ['free', 'paid', 'unknown'].includes(m.tier)))
 check('the balance state is present', wbAgent && ['ok', 'unauthenticated', 'unsupported', 'error'].includes(wbAgent.balance.state))
 check('with no token the balance is unauthenticated', wbAgent && wbAgent.balance.state === 'unauthenticated')
+
+/* ---- advisory reminders ride the agent/pre-step waterfall ---- */
+check('the bridge subscribes to agent/pre-step', typeof listeners.get('agent/pre-step') === 'function')
+
+const preStep = listeners.get('agent/pre-step')
+const toolAgentMode = tools.get('agent_mode')
+const enter = { kind: 'enter', messages: [{ role: 'user', content: [] }] }
+const decided = await preStep({ agent: { id: 'a' }, messages: [{ role: 'user' }], step: 1, signal: undefined }, async () => enter)
+check('a reminder is appended to the entering batch', decided.messages.length === enter.messages.length + 1)
+const injected = decided.messages[decided.messages.length - 1]
+check('the injected message is a user message', injected.role === 'user')
+check('it carries the plugin-owned source', injected.source && injected.source.kind === 'agent-bridge')
+check('its text is a system-reminder frame', /<system-reminder>/.test(injected.content[0].text))
+
+const again = await preStep({ agent: { id: 'a' }, messages: [{ role: 'user' }], step: 1, signal: undefined }, async () => ({ kind: 'enter', messages: [{ role: 'user' }] }))
+check('the same step does not inject twice', again.messages.length === 1)
+
+const silentCtxState = await toolAgentMode.execute({ action: 'set', auto: true })
+check('the silent case really was written to state', silentCtxState.state.auto === true, String(silentCtxState.state.auto))
+const silent = await preStep({ agent: { id: 'a' }, messages: [{ role: 'user' }], step: 7, signal: undefined }, async () => ({ kind: 'enter', messages: [{ role: 'user' }] }))
+check('auto:true disables injection entirely', silent.messages.length === 1)
+await toolAgentMode.execute({ action: 'set', auto: false })
 
 console.log(`\nwarnings during mount: ${warnings.length}`)
 console.log(`${failures === 0 ? 'HOST HARNESS: PASS' : `HOST HARNESS: FAIL (${failures})`}`)
