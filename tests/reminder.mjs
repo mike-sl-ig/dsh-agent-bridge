@@ -61,5 +61,20 @@ check('with no turn key, a non-user batch stays silent', !planInjection(noKey, {
 check('plan carries the text', typeof planInjection(noTurn, { step: 9, messages: [{ role: 'user' }] }, null).text === 'string')
 check('a silent plan has no text', planInjection(on({ auto: true }), { step: 9, messages: [{ role: 'user' }] }, null).text === null)
 
+/* The live injection path must name the configured model, not just the agent:
+ * buildDelegationReminder() supports a model, but planInjection() passed '' and
+ * the real reminder came out as "调用 opencode" with no model at all. */
+const liveText = planInjection(on(), { turn: 3, messages: [{ role: 'user' }] }, null).text
+const targetOf = (text) => {
+  const line = text.split('\n').find((l) => l.includes('调用 '))
+  return line.slice(line.indexOf('调用 ') + 3).replace(/；$/, '')
+}
+check('the injected text names the default agent', liveText.includes('opencode'))
+check('the injected text names its configured model',
+  targetOf(liveText) === 'opencode (opencode/mimo-v2.6-flash-free)', targetOf(liveText))
+const noConfiguredModel = planInjection(on({ agents: {} }), { turn: 4, messages: [{ role: 'user' }] }, null).text
+check('an agent with no configured model still injects, without a model',
+  targetOf(noConfiguredModel) === 'opencode', targetOf(noConfiguredModel))
+
 console.log(failures ? `\n${failures} failure(s)` : '\nall good')
 process.exit(failures ? 1 : 0)
