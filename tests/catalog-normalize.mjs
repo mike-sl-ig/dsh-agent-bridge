@@ -58,5 +58,24 @@ check('explicit label wins', objects[0].label === 'GLM-5.2')
 check('a bogus tier is recomputed', normalizeModelList([{ id: 'x', tier: 'cheap', credits: 'x0.00' }])[0].tier === 'free')
 check('non-array input yields an empty list', normalizeModelList(undefined).length === 0)
 
+/* The account catalog marks real chat models with `supportsToolCall`; the
+ * completion / NES / internal ones simply do not carry it. Measured on the live
+ * config: 43 of 55 have it, and the 12 without are exactly the ones that must
+ * not appear in a picker for an agent that is expected to run tasks. */
+const mixed = [
+  { id: 'glm-5.2', name: 'GLM-5.2', supportsToolCall: true, credits: 'x0.79' },
+  { id: 'codewise-jump', name: 'codewise-jump' },
+  { id: 'completion-gf', name: 'completion-gf', supportsToolCall: true },
+]
+const ids = (spec) => normalizeCatalog(mixed, { map: { id: 'id', label: 'name' }, ...spec }).map((m) => m.id).join(',')
+check('require drops entries that do not satisfy it', ids({ require: { supportsToolCall: true } }) === 'glm-5.2,completion-gf')
+check('a require on a missing field drops the entry', normalizeCatalog([{ id: 'x' }], { require: { supportsToolCall: true } }).length === 0)
+check('require is ignored when it is not an object', ids({ require: 'yes' }) === 'glm-5.2,codewise-jump,completion-gf')
+check('excludeIdPattern drops matching ids', ids({ excludeIdPattern: 'completion' }) === 'glm-5.2,codewise-jump')
+check('excludeIdPattern is case-insensitive', ids({ excludeIdPattern: 'CODEWISE' }) === 'glm-5.2,completion-gf')
+check('require and excludeIdPattern combine', ids({ require: { supportsToolCall: true }, excludeIdPattern: 'completion' }) === 'glm-5.2')
+check('an invalid excludeIdPattern is ignored rather than throwing', ids({ excludeIdPattern: '[' }).split(',').length === 3)
+check('an empty excludeIdPattern changes nothing', ids({ excludeIdPattern: '' }).split(',').length === 3)
+
 console.log(failures ? `\n${failures} failure(s)` : '\nall good')
 process.exit(failures ? 1 : 0)

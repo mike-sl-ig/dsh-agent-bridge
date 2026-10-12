@@ -64,6 +64,8 @@
     "pick": "models",
     "map": { "id": "id", "label": "name", "credits": "credits", "vendor": "vendor" },
     "excludeTags": ["text-to-image", "text-to-video", "image-to-video"],
+    "require": { "supportsToolCall": true },
+    "excludeIdPattern": "completion",
     "ttlMs": 300000
   },
 

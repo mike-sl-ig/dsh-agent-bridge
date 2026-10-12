@@ -2,6 +2,14 @@
 
 ## 0.3.0
 
+- **The model picker stops offering models that cannot do the job.** WorkBuddy's account catalog
+  lists 55 models, and 12 of them are completion / NES-completion / internal engines that have no
+  business in an agent picker. They are also exactly the entries with no `supportsToolCall`, so the
+  recipe now says so instead of matching on names: `catalog.require: { supportsToolCall: true }`,
+  plus `catalog.excludeIdPattern` for the stragglers. Measured on the live config: 54 → 42 models,
+  with nothing usable dropped. A field is a better signal than a naming convention, and an
+  uncompilable `excludeIdPattern` is a validation error rather than a filter that silently does
+  nothing.
 - **A failed run now says why.** Both shipped JSON agents report failure INSIDE the stream rather
   than on stderr — OpenCode and CodeBuddy both write
   `{"type":"error","error":{"type","message","status"}}` and exit 1 — so a failure used to read

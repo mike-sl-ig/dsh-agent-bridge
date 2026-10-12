@@ -121,6 +121,13 @@ check('catalog.kind is required', !v({ ...demoBase, catalog: { path: ['x'] } }).
 check('a bogus catalog.kind is rejected', !v({ ...demoBase, catalog: { kind: 'telepathy' } }).ok)
 check('jsonFile catalog needs a path', !v({ ...demoBase, catalog: { kind: 'jsonFile' } }).ok)
 check('catalog.excludeTags must be strings', !v({ ...demoBase, catalog: { kind: 'none', excludeTags: [1] } }).ok)
+check('catalog.require must be an object', !v({ ...demoBase, catalog: { kind: 'none', require: 'yes' } }).ok)
+check('a field-level catalog.require validates',
+  v({ ...demoBase, catalog: { kind: 'none', require: { supportsToolCall: true } } }).ok)
+check('a valid catalog.excludeIdPattern validates',
+  v({ ...demoBase, catalog: { kind: 'none', excludeIdPattern: 'completion' } }).ok)
+check('an uncompilable catalog.excludeIdPattern is rejected',
+  !v({ ...demoBase, catalog: { kind: 'none', excludeIdPattern: '[' } }).ok)
 
 check('a balance block validates', v({ ...demoBase, balance: { kind: 'http', base: 'https://x', summary: { method: 'POST', path: '/y' }, write: null } }).ok)
 check('a balance write capability is rejected', !v({ ...demoBase, balance: { kind: 'http', base: 'https://x', summary: { method: 'POST', path: '/y' }, write: { method: 'POST', path: '/z' } } }).ok)
@@ -149,6 +156,8 @@ check('its catalog is the account config first', wb.catalog.path[0].includes('ac
 check('its catalog falls back to the install bundle', wb.catalog.path[1].includes('product.json'))
 check('its balance is read-only', wb.balance.write === null)
 check('its balance has no write endpoint', !JSON.stringify(wb.balance).includes('checkin'))
+check('its catalog keeps only tool-calling chat models', wb.catalog.require.supportsToolCall === true)
+check('its catalog drops completion models by id', wb.catalog.excludeIdPattern === 'completion')
 
 console.log(`\n${failures === 0 ? 'RECIPE WIZARD: PASS' : `RECIPE WIZARD: FAIL (${failures})`}`)
 process.exit(failures === 0 ? 0 : 1)
