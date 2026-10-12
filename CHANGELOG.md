@@ -1,5 +1,24 @@
 # Changelog
 
+## 0.3.0
+
+- **The enabled features are no longer invisible.** verify / bulk / second only ever did anything
+  once `agent_run` was called, so the user had to name an agent in every prompt. The bridge now
+  registers DSH's `agent/pre-step` waterfall — the same hook `@deepseek-ai/dsh-agent-instructions`
+  uses — and injects ONE advisory `<system-reminder>` per turn naming the features that are on and
+  the agent that would serve them.
+- **Advisory, never coercive.** The model still decides. Nothing blocks, retries, or forces a call.
+  `auto: true` ("DSH handles everything") and the new `remind: false` switch both mean the bridge
+  says nothing at all.
+- **A switch in the panel** ("自动提醒", on by default) so it can be silenced without turning the
+  features off.
+- Reminder text escapes `<` and `>`: recipe ids and model names are external data, and a community
+  recipe must not be able to close the plugin-owned `</system-reminder>` frame.
+- The per-turn dedupe has two tested paths, because the real `agent/pre-step` payload shape was not
+  measured when this was written. The first few payload SHAPES (keys only, never values) are logged
+  to `<DSH_HOME>/tools/agent-bridge/logs/pre-step-shape.log` so the rule can be tightened with
+  evidence instead of guesswork.
+
 ## 0.2.0
 
 - **New agent: WorkBuddy** (Tencent CodeBuddy Code). Headless-only: this desktop build ships
