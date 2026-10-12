@@ -436,6 +436,15 @@ check('the injected message is a user message', injected.role === 'user')
 check('it carries the plugin-owned source', injected.source && injected.source.kind === 'agent-bridge')
 check('its text is a system-reminder frame', /<system-reminder>/.test(injected.content[0].text))
 
+/* The panel needs a RECEIPT. The reminder is model-visible context and
+ * dsh-context folds every injection into one aggregate figure, so without this
+ * a user had no way at all to see that the bridge was speaking. */
+const receiptBody = await routeFetch('')
+check('the route reports the last injected reminder',
+  Boolean(receiptBody.reminder) && typeof receiptBody.reminder.at === 'string'
+    && /Agent 桥接/.test(String(receiptBody.reminder.text)),
+  JSON.stringify(receiptBody.reminder).slice(0, 160))
+
 const again = await preStep({ agent: { id: 'a' }, messages: [{ role: 'user' }], step: 1, signal: undefined }, async () => ({ kind: 'enter', messages: [{ role: 'user' }] }))
 check('the same step does not inject twice', again.messages.length === 1)
 

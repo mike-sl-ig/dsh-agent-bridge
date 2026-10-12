@@ -100,8 +100,12 @@ const AGENTS = [
   { id: 'claude', label: 'Claude Code', cost: 'paid', installed: true, path: 'C:\\y\\claude.exe', models: [], model: '' },
 ]
 // [open, state, agents, last, selftest, probe, status, busy, note]
+/* Index-seeded, so the ARRAY LENGTH must match the component's useState count:
+ * 0 open, 1 state, 2 agents, 3 last, 4 selftest, 5 probe, 6 status, 7 busy,
+ * 8 note, 9 reminder. A missing slot is not an error here — `.map` simply never
+ * visits it — which is exactly how a new hook silently stops being testable. */
 const hooks = (over = {}) => [
-  true, CFG, AGENTS, null, null, null, null, false, '',
+  true, CFG, AGENTS, null, null, null, null, false, '', null,
 ].map((value, at) => (over[at] === undefined ? value : over[at]))
 
 /* ------------------------------------------------- 1. nothing is claimed yet */
@@ -276,6 +280,24 @@ check('both pooled agents render their own model picker',
 const onlyWorkbuddy = renderPanel({ ...twoAgents, pool: ['workbuddy'] })
 check('an agent outside the pool contributes no model picker',
   onlyWorkbuddy.includes('快速') && !onlyWorkbuddy.includes('big-pickle'), onlyWorkbuddy.slice(0, 300))
+
+/* ---- 0.4.1: the receipt for the injected reminder -------------------------
+ * The reminder is model-visible context, never a chat message, and dsh-context
+ * folds every injection into one aggregate figure — so before this a user had no
+ * way at all to see that the bridge was speaking. Hook slot 9 is `reminder`. */
+function renderWithReminder(payload, value) {
+  const h = makeHarness()
+  return textOf(h.seed(hooks({ 1: payload, 2: payload.agents, 9: value })))
+}
+const receipt = renderWithReminder(withCatalog, {
+  at: '2026-10-13T00:20:31.000Z',
+  text: '<system-reminder>\nAgent 桥接（建议型）：已开启 跨模型交叉验证。\n</system-reminder>',
+})
+check('the panel shows a receipt for the last injection',
+  receipt.includes('最近一次注入') && receipt.includes('跨模型交叉验证'), receipt.slice(0, 260))
+check('the receipt strips the raw frame from the preview', !receipt.includes('<system-reminder>'))
+check('with nothing injected yet the panel says so',
+  renderWithReminder(withCatalog, null).includes('尚无注入记录'))
 
 console.log(`\n${failures === 0 ? 'CLIENT RENDER: PASS' : `CLIENT RENDER: FAIL (${failures})`}`)
 process.exit(failures === 0 ? 0 : 1)
