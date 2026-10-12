@@ -228,5 +228,8 @@ const unsupported = renderPanel({
 })
 check('unsupported renders no balance row', !unsupported.includes('未登录') && !unsupported.includes('余额获取失败'))
 
+const reminded = renderPanel({ ...withCatalog, remind: true })
+check('the panel offers the advisory reminder switch', reminded.includes('自动提醒'))
+
 console.log(`\n${failures === 0 ? 'CLIENT RENDER: PASS' : `CLIENT RENDER: FAIL (${failures})`}`)
 process.exit(failures === 0 ? 0 : 1)
