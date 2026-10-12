@@ -9,6 +9,9 @@
   "discover": {
     "env": ["WORKBUDDY_CLI", "CODEBUDDY_CLI"],
     "bin": ["codebuddy", "cbc"],
+    "derive": [
+      { "append": "node_modules/@tencent-ai/codebuddy-code/bin/codebuddy" }
+    ],
     "paths": {
       "win32": [
         "%WORKBUDDY_HOME%\\resources\\app.asar.unpacked\\cli\\bin\\codebuddy",

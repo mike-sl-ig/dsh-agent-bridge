@@ -13,7 +13,7 @@ import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { discover, loadRecipe } from '../lib/engine.js'
+import { discover, findOnPath, loadRecipe } from '../lib/engine.js'
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 const claude = loadRecipe(join(ROOT, 'lib', 'recipes', 'claude.json'))
@@ -41,6 +41,41 @@ touch(join(win.localappdata, 'Programs', '@opencodedesktop', 'resources', 'openc
 touch(join(win.appdata, 'ai.opencode.desktop', 'cli', '2.0.19', 'opencode-cli.exe'))        // versioned glob
 
 const winEnv = { PATH: win.npmBin, APPDATA: win.appdata, LOCALAPPDATA: win.localappdata }
+
+/* An npm bin directory holds THREE shims for one command: `codebuddy` (a POSIX
+ * shell script), `codebuddy.cmd` and `codebuddy.ps1`. On Windows only the
+ * PATHEXT ones are spawnable — the extensionless file is a shell script the OS
+ * cannot execute — so it must not be picked just because it sorts first.
+ * Measured 2026-10-13: picking it is exactly why the bundled workbuddy recipe's
+ * `--version` probe started failing the moment `npm i -g` put it on PATH. */
+const shimDir = join(base, 'win', 'npm-shims')
+touch(join(shimDir, 'codebuddy'))
+touch(join(shimDir, 'codebuddy.cmd'))
+check('win32: an extensionless npm shim does not outrank the .cmd beside it',
+  findOnPath(['codebuddy'], { PATH: shimDir, PATHEXT: '.COM;.EXE;.BAT;.CMD' }, 'win32') === join(shimDir, 'codebuddy.cmd'),
+  String(findOnPath(['codebuddy'], { PATH: shimDir, PATHEXT: '.COM;.EXE;.BAT;.CMD' }, 'win32')))
+const exeDir = join(base, 'win', 'has-exe')
+touch(join(exeDir, 'codebuddy.exe'))
+touch(join(exeDir, 'codebuddy.cmd'))
+check('win32: PATHEXT order decides between two real shims',
+  findOnPath(['codebuddy'], { PATH: exeDir, PATHEXT: '.COM;.EXE;.BAT;.CMD' }, 'win32').endsWith('codebuddy.exe'))
+check('posix: the bare name is still the only candidate',
+  findOnPath(['codebuddy'], { PATH: shimDir }, 'linux') === join(shimDir, 'codebuddy'))
+
+/* The npm install of the CodeBuddy CLI puts only shims on PATH; the entry that
+ * must be spawned with `node` lives inside the package. Same shim→real pattern
+ * as claude, and the DERIVED entry has to win or the recipe would hand a .cmd
+ * to node. */
+const workbuddy = loadRecipe(join(ROOT, 'lib', 'recipes', 'workbuddy.json'))
+const npmRoot = join(base, 'win', 'npm-global')
+touch(join(npmRoot, 'codebuddy.cmd'))
+touch(join(npmRoot, 'node_modules', '@tencent-ai', 'codebuddy-code', 'bin', 'codebuddy'))
+const wbFound = discover(workbuddy, { PATH: npmRoot }, 'win32')
+check('win32: the npm codebuddy shim derives the package\'s real JS entry',
+  Boolean(wbFound[0]) && /^derived/.test(wbFound[0].source)
+    && wbFound[0].path.endsWith(join('@tencent-ai', 'codebuddy-code', 'bin', 'codebuddy')),
+  JSON.stringify(wbFound.slice(0, 2)))
+
 const winClaude = discover(claude, winEnv, 'win32')
 check('win32: the spawnable real entry outranks the .cmd shim',
   winClaude[0] && winClaude[0].path.endsWith('claude.exe') && /^derived/.test(winClaude[0].source),

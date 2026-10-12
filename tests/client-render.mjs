@@ -262,8 +262,15 @@ const twoAgents = {
 const pooledPanel = renderPanel(twoAgents)
 check('both pooled agents render their own model picker',
   pooledPanel.includes('big-pickle') && pooledPanel.includes('快速'), pooledPanel.slice(0, 400))
-check('the pool is not limited to one selection (no radio for the default)',
-  !/name="agent-bridge-default"/.test(pooledPanel))
+/* The picker is gated by POOL MEMBERSHIP, not by the old single "selected"
+ * default. That is the behaviour worth pinning: an agent outside the pool must
+ * contribute no picker at all.
+ * NOTE: an earlier version of this check asserted `!/name="agent-bridge-default"/`,
+ * which could never fail — textOf() walks props.children only, never attributes,
+ * so the string it searched for is unreachable by construction. */
+const onlyWorkbuddy = renderPanel({ ...twoAgents, pool: ['workbuddy'] })
+check('an agent outside the pool contributes no model picker',
+  onlyWorkbuddy.includes('快速') && !onlyWorkbuddy.includes('big-pickle'), onlyWorkbuddy.slice(0, 300))
 
 console.log(`\n${failures === 0 ? 'CLIENT RENDER: PASS' : `CLIENT RENDER: FAIL (${failures})`}`)
 process.exit(failures === 0 ? 0 : 1)
