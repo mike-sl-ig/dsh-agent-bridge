@@ -184,5 +184,49 @@ const selfText = textOf(h4.render())
 check('the selftest action reports its own outcome', selfText.includes('自检 1/2 通过'), selfText.slice(0, 140))
 check('the selftest lists each agent verdict', selfText.includes('OK  OpenCode') && selfText.includes('FAIL  Claude Code'))
 
+/* ---- 0.2.0: free/paid badges and the balance line ---- */
+/* NOTE: this file has no `renderPanel` helper. Its real helpers are
+ * makeHarness() / hooks(over) / textOf(node), so renderPanel is defined here in
+ * terms of them: hook slot 1 is the host state, slot 2 the agent rows. */
+function renderPanel(payload) {
+  const h = makeHarness()
+  return textOf(h.seed(hooks({ 1: payload, 2: payload.agents })))
+}
+
+const withCatalog = {
+  agents: [
+    {
+      id: 'workbuddy', label: 'WorkBuddy', vendor: 'Tencent', cost: 'paid',
+      installed: true, path: 'C:\\wb\\codebuddy', model: '',
+      models: [
+        { id: 'fast-model', label: '快速', tier: 'paid', creditsText: 'x0.21', credits: 0.21, vendor: 'f' },
+        { id: 'hy3', label: 'Hy3', tier: 'free', creditsText: 'x0.00 credits', credits: 0, vendor: '' },
+      ],
+      modelIds: ['fast-model', 'hy3'],
+      balance: { state: 'ok', unit: '积分', total: 1500, remaining: 380, packages: [{ id: 'free', label: '免费包', total: 500, used: 120, remaining: 380 }] },
+    },
+  ],
+  auto: false, defaultAgent: 'workbuddy', defaultMode: 'verify',
+  enabled: { verify: true, bulk: false, second: false },
+}
+const rendered = renderPanel(withCatalog)
+check('a free model is labelled', rendered.includes('免费'))
+check('a paid model shows its multiplier', rendered.includes('x0.21'))
+check('the balance is shown', rendered.includes('380'))
+check('the balance unit is shown', rendered.includes('积分'))
+
+const notLoggedIn = renderPanel({
+  ...withCatalog,
+  agents: [{ ...withCatalog.agents[0], balance: { state: 'unauthenticated', packages: [] } }],
+})
+check('unauthenticated says so in words', notLoggedIn.includes('未登录'))
+check('unauthenticated shows no number', !/剩余\s*\d/.test(notLoggedIn))
+
+const unsupported = renderPanel({
+  ...withCatalog,
+  agents: [{ ...withCatalog.agents[0], balance: { state: 'unsupported', packages: [] } }],
+})
+check('unsupported renders no balance row', !unsupported.includes('未登录') && !unsupported.includes('余额获取失败'))
+
 console.log(`\n${failures === 0 ? 'CLIENT RENDER: PASS' : `CLIENT RENDER: FAIL (${failures})`}`)
 process.exit(failures === 0 ? 0 : 1)
