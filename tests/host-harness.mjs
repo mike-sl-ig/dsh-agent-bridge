@@ -445,6 +445,15 @@ const silent = await preStep({ agent: { id: 'a' }, messages: [{ role: 'user' }],
 check('auto:true disables injection entirely', silent.messages.length === 1)
 await toolAgentMode.execute({ action: 'set', auto: false })
 
+/* ---- 0.4.0: the pool decides the default target ---- */
+const poolSaved = await routeFetch('?save=1&auto=0&pool=' + encodeURIComponent('workbuddy,opencode') + '&verify=1&bulk=0&second=0')
+check('the route stores a pool', Array.isArray(poolSaved.state.pool) && poolSaved.state.pool.join(',') === 'workbuddy,opencode', JSON.stringify(poolSaved.state.pool))
+check('and derives defaultAgent from it', poolSaved.state.defaultAgent === 'workbuddy', poolSaved.state.defaultAgent)
+const hinted = await tools.get('agent_run').execute({ prompt: 'Reply with exactly: POOL-OK', mode: 'default', timeoutMs: 120000 })
+check('an unnamed call uses the first INSTALLED pool member',
+  hinted.result.Agent === 'workbuddy' || hinted.result.Agent === 'opencode', hinted.result.Agent)
+await routeFetch('?save=1&pool=' + encodeURIComponent('opencode'))
+
 console.log(`\nwarnings during mount: ${warnings.length}`)
 console.log(`${failures === 0 ? 'HOST HARNESS: PASS' : `HOST HARNESS: FAIL (${failures})`}`)
 process.exit(failures === 0 ? 0 : 1)

@@ -59,6 +59,10 @@ check('the migrated state is persisted, not just in memory',
   written.defaultAgent === 'opencode' && written.agents.opencode.model === 'opencode/mimo-v2.6-flash-free',
   JSON.stringify(written))
 
+/* ---- 0.4.0: an old single default agent becomes a one-member pool ---- */
+check('the pool is derived from the old single default agent', Array.isArray(state.pool) && state.pool.join(',') === 'opencode', JSON.stringify(state.pool))
+check('defaultAgent still reports the first pool member', state.defaultAgent === 'opencode')
+
 /* ---------------------------------------------------- compatibility aliases */
 check('the compatibility aliases are registered',
   tools.has('opencode_run') && tools.has('opencode_mode'), [...tools.keys()].join(', '))
@@ -66,6 +70,13 @@ check('alias schemas stay wire-legal',
   tools.get('opencode_run').parameters.type === 'object' && tools.get('opencode_mode').parameters.type === 'object')
 check('the alias advertises itself as an alias',
   /alias of agent_run/i.test(tools.get('opencode_run').description), tools.get('opencode_run').description.slice(0, 90))
+
+/* ---- 0.4.0: agent_mode reads and writes the pool ---- */
+const pooled = await tools.get('agent_mode').execute({ action: 'set', pool: ['opencode', 'claude'] })
+check('agent_mode sets a pool', Array.isArray(pooled.state.pool) && pooled.state.pool.join(',') === 'opencode,claude', JSON.stringify(pooled.state.pool))
+check('defaultAgent follows the first pool member', pooled.state.defaultAgent === 'opencode', pooled.state.defaultAgent)
+const single = await tools.get('agent_mode').execute({ action: 'set', defaultAgent: 'claude' })
+check('the legacy defaultAgent param still works and collapses the pool', single.state.pool.join(',') === 'claude', JSON.stringify(single.state.pool))
 
 if (process.env.SKIP_LIVE_RUN === '1') {
   console.log('\n(skipping the live alias run: SKIP_LIVE_RUN=1)')
