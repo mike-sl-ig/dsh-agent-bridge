@@ -52,6 +52,7 @@ check('the single model moves under the opencode agent',
   state.agents.opencode && state.agents.opencode.model === 'opencode/mimo-v2.6-flash-free',
   JSON.stringify(state.agents))
 check('the migrated default agent is opencode', state.defaultAgent === 'opencode', state.defaultAgent)
+check('advisory reminders default to on', state.remind === true, String(state.remind))
 
 const written = JSON.parse(readFileSync(migratedPath, 'utf8'))
 check('the migrated state is persisted, not just in memory',
