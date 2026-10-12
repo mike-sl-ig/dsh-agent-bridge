@@ -1,0 +1,9 @@
+{
+  "type": "result",
+  "subtype": "success",
+  "is_error": false,
+  "result": "OK",
+  "session_id": "01a13073-89bd-7f1c-8814-08d193f5d469",
+  "total_cost_usd": 0,
+  "usage": { "input_tokens": 12, "output_tokens": 3, "cache_read_input_tokens": 0 }
+}

@@ -132,5 +132,23 @@ check('a bogus interpreter source is rejected', !v({ ...demoBase, interpreter: {
 check('an imported recipe may use the new keys', validateRecipe({ ...demoBase, catalog: { kind: 'none' }, balance: { kind: 'none' }, interpreter: { source: 'self' } }, { strictKeys: true }).ok)
 check('an imported recipe still rejects unknown keys', !validateRecipe({ ...demoBase, wat: 1 }, { strictKeys: true }).ok)
 
+/* ---- the bundled WorkBuddy recipe ---- */
+// NOTE: the plan's snippet re-imports `loadRecipe` (already imported at the top of
+// this file, which would be a duplicate binding) and aliases `join` as `joinPath`.
+// Both are adapted to the names this file already has.
+
+const wb = loadRecipe(join(process.cwd(), 'lib', 'recipes', 'workbuddy.json'))
+const wbVerdict = validateRecipe(wb)
+check('the bundled workbuddy recipe validates', wbVerdict.ok, wbVerdict.problems.join('; '))
+check('it points at the codebuddy entry point', JSON.stringify(wb.discover.paths.win32).includes('codebuddy'))
+check('it runs headless', wb.run.argv.includes('-p'))
+check('it reads JSON', wb.output.format === 'json')
+check('it maps the model flag', wb.run.model.flag.join(' ') === '--model')
+check('it declares an interpreter', wb.interpreter.source === 'self')
+check('its catalog is the account config first', wb.catalog.path[0].includes('acc-product-config-v3.json'))
+check('its catalog falls back to the install bundle', wb.catalog.path[1].includes('product.json'))
+check('its balance is read-only', wb.balance.write === null)
+check('its balance has no write endpoint', !JSON.stringify(wb.balance).includes('checkin'))
+
 console.log(`\n${failures === 0 ? 'RECIPE WIZARD: PASS' : `RECIPE WIZARD: FAIL (${failures})`}`)
 process.exit(failures === 0 ? 0 : 1)

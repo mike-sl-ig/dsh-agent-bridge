@@ -1,0 +1,94 @@
+{
+  "id": "workbuddy",
+  "label": "WorkBuddy",
+  "vendor": "Tencent",
+  "cost": "paid",
+  "homepage": "https://www.workbuddy.cn",
+  "notes": "Tencent CodeBuddy Code (genie). This desktop build ships ONLY the headless bundle: dist/codebuddy-headless.js exists, dist/codebuddy.js (the TUI) does not, so the interactive /login command is unavailable. Authentication therefore comes from the environment (CODEBUDDY_AUTH_TOKEN) or from a desktop-spilled ACC product config; without one the CLI exits with 'Authentication required'.",
+
+  "discover": {
+    "env": ["WORKBUDDY_CLI", "CODEBUDDY_CLI"],
+    "bin": ["codebuddy", "cbc"],
+    "paths": {
+      "win32": [
+        "%WORKBUDDY_HOME%\\resources\\app.asar.unpacked\\cli\\bin\\codebuddy",
+        "D:\\work Buddy\\WorkBuddy\\resources\\app.asar.unpacked\\cli\\bin\\codebuddy",
+        "%LOCALAPPDATA%\\Programs\\WorkBuddy\\resources\\app.asar.unpacked\\cli\\bin\\codebuddy",
+        "%PROGRAMFILES%\\WorkBuddy\\resources\\app.asar.unpacked\\cli\\bin\\codebuddy"
+      ],
+      "darwin": [
+        "/Applications/WorkBuddy.app/Contents/Resources/app.asar.unpacked/cli/bin/codebuddy"
+      ],
+      "linux": [
+        "/opt/WorkBuddy/resources/app.asar.unpacked/cli/bin/codebuddy"
+      ]
+    }
+  },
+
+  "interpreter": { "source": "self" },
+
+  "version": {
+    "args": ["--version"],
+    "match": ".",
+    "timeoutMs": 60000
+  },
+
+  "run": {
+    "argv": ["-p", "--output-format", "json"],
+    "prompt": { "via": "positional" },
+    "model": { "flag": ["--model"] },
+    "session": { "flag": ["--session-id"] },
+    "resume": { "flag": ["-r"] },
+    "workdir": { "via": "cwd" }
+  },
+
+  "output": {
+    "format": "json",
+    "answer": { "pick": "result" },
+    "session": { "pick": "session_id" },
+    "usage": {
+      "cost": "total_cost_usd",
+      "input": "usage.input_tokens",
+      "output": "usage.output_tokens",
+      "cacheRead": "usage.cache_read_input_tokens"
+    }
+  },
+
+  "catalog": {
+    "kind": "jsonFile",
+    "path": [
+      "%USERPROFILE%\\.workbuddy\\cache\\acc-product-config-v3.json",
+      "%WORKBUDDY_HOME%\\resources\\app.asar.unpacked\\cli\\product.json",
+      "D:\\work Buddy\\WorkBuddy\\resources\\app.asar.unpacked\\cli\\product.json"
+    ],
+    "pick": "models",
+    "map": { "id": "id", "label": "name", "credits": "credits", "vendor": "vendor" },
+    "excludeTags": ["text-to-image", "text-to-video", "image-to-video"],
+    "ttlMs": 300000
+  },
+
+  "balance": {
+    "kind": "http",
+    "base": "https://www.workbuddy.cn",
+    "loginProbe": { "method": "GET", "path": "/console/accounts", "pick": "data.accounts" },
+    "summary": { "method": "POST", "path": "/v2/billing/meter/get-user-resource-summary", "body": {} },
+    "map": { "id": "ResourceId", "label": "PackageName", "total": "total", "used": "used" },
+    "unit": "积分",
+    "write": null
+  },
+
+  "models": ["auto"],
+
+  "caps": {
+    "model": true,
+    "session": true,
+    "resume": true,
+    "files": false,
+    "autoApprove": false,
+    "structured": true
+  },
+
+  "safety": {
+    "note": "Runs headless with -p. No permission-bypass flag is declared, so the CLI keeps its own prompts. The account token is read from the environment; this plugin never stores or writes one."
+  }
+}
