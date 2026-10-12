@@ -248,5 +248,22 @@ const unexplained = renderWithLast(withCatalog, { Ok: false, Agent: 'opencode', 
 check('an unexplained failure still says there was no answer',
   unexplained.includes('没有产出最终答案') && !unexplained.includes('失败原因'))
 
+/* ---- 0.4.0: a pool, so more than one agent can be switched on ---- */
+const twoAgents = {
+  ...withCatalog,
+  pool: ['workbuddy', 'opencode'],
+  agents: [
+    withCatalog.agents[0],
+    { id: 'opencode', label: 'OpenCode', vendor: 'opencode.ai', cost: 'free', installed: true, path: 'C:\\oc\\opencode.exe',
+      models: [{ id: 'opencode/big-pickle', label: 'big-pickle', tier: 'unknown' }], modelIds: ['opencode/big-pickle'],
+      balance: { state: 'unsupported', packages: [] }, model: '' },
+  ],
+}
+const pooledPanel = renderPanel(twoAgents)
+check('both pooled agents render their own model picker',
+  pooledPanel.includes('big-pickle') && pooledPanel.includes('快速'), pooledPanel.slice(0, 400))
+check('the pool is not limited to one selection (no radio for the default)',
+  !/name="agent-bridge-default"/.test(pooledPanel))
+
 console.log(`\n${failures === 0 ? 'CLIENT RENDER: PASS' : `CLIENT RENDER: FAIL (${failures})`}`)
 process.exit(failures === 0 ? 0 : 1)
