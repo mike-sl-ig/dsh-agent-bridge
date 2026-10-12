@@ -77,7 +77,16 @@ dsh plugin --profile <你的档名> add /绝对路径/dsh-agent-bridge
 - `discover`：环境变量 → `PATH` → 已知安装路径 → **垫片反推真实入口**（npm 在 bin 里放的是 `.ps1`/`.cmd` 垫片，真正能直接 exec 的是包内的原生入口，推导出的入口**排在垫片之前**）；
 - `run.prompt.via`：`positional`（追加到 argv 末尾）、`stdin`（写进子进程 stdin）、或某个 flag 名；
 - `output`：`jsonl`（按事件累加）/ `json`（单个对象）/ `text`（兜底）；
-- `caps`：声明这个 CLI 支持什么（模型、会话、续跑、附件…），面板据此决定显示哪些控件。
+- `caps`：声明这个 CLI 支持什么（模型、会话、续跑、附件…），面板据此决定显示哪些控件；
+- `catalog`：模型列表的真实来源——`{ kind: "jsonFile", path: […], pick: "models", map: { id, label, credits, vendor }, excludeTags: […], ttlMs }`。按顺序取第一个能读到的文件，结果按 `ttlMs` 缓存；**任何失败**（文件缺失、JSON 坏、列表为空）都降级到配方自带的 `models`，原因放在 `catalogError` 里。`models` 同时接受 0.1.x 的字符串数组和 `{ id, label?, tier?, credits?, vendor? }` 对象。
+- `balance`：账户余额，**结构上只读**——`{ kind: "http", base, loginProbe, summary, map, unit }`，只会发出配方点名的那两个请求；没有凭证时**不发请求**直接返回 `unauthenticated`，四态（`ok` / `unauthenticated` / `unsupported` / `error`）都不会显示编造的数字。`balance.write` 会被校验器**直接拒绝**：插件在数据层面就无法描述一个会改动账户的调用。
+- `interpreter`：`{ "source": "self" }` 让 JS 写的 CLI 跑在**正在承载本插件的那个 Node** 上，而不是把 `.js` 文件交给操作系统。
+
+## WorkBuddy（腾讯 CodeBuddy Code）
+
+桌面版**只随包发布了无头（headless）内核**（有 `dist/codebuddy-headless.js`，没有 `dist/codebuddy.js`），所以这个安装包里**不存在交互式 `/login`**，CLI 也没有 `login` / `auth` 子命令。凭证只能来自环境变量 `CODEBUDDY_AUTH_TOKEN`；没有它时 CLI 会以 `Authentication required` 退出，面板显示 **「余额：未登录」**——这是诚实的现状，不是数字。
+
+模型下拉不受影响：账号级目录（`%USERPROFILE%\.workbuddy\cache\acc-product-config-v3.json`）优先，安装目录的 `product.json` 兜底，每项都带 `免费` / `付费 x0.21` 标记。
 
 ## 成本是真实的
 
@@ -85,7 +94,7 @@ dsh plugin --profile <你的档名> add /绝对路径/dsh-agent-bridge
 
 ## 质量与可验证性
 
-- **11 套离线测试 / 223 项检查**：真实录制样本回放、win32·darwin·linux **三平台发现矩阵**、三种 prompt 传输、工具返回值的**「无损 JSON」契约**（这是 DSH 会整条拒绝工具调用的边界）、注册表导入的对抗性测试、打包/发布检查、客户端启动与渲染测试；
+- **15 套离线测试 / 本机 337 项检查**：真实录制样本回放、win32·darwin·linux **三平台发现矩阵**、三种 prompt 传输、工具返回值的**「无损 JSON」契约**（这是 DSH 会整条拒绝工具调用的边界）、注册表导入的对抗性测试、打包/发布检查、客户端启动与渲染测试、模型目录的归一化与降级、余额四态、解释器 argv 拼装（录制流回放的检查数随本机日志多少而变）；
 - **CI 在 ubuntu / macos / windows × node 20 / 22 上全绿**——跨平台不是声明，是实测；
 - 真实环境验证：DSH web 档 + 无头浏览器（面板、自检、从 npm 与 Release 各装一次）**零控制台报错**；
 - 零运行时依赖、无安装期生命周期钩子、`npm pack` 内容与 `files` 字段严格一致。

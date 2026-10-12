@@ -6,7 +6,7 @@
  */
 
 import { execFileSync } from 'node:child_process'
-import { readFileSync } from 'node:fs'
+import { readdirSync, readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -64,6 +64,15 @@ check('the license is declared', Boolean(manifest.license), manifest.license)
 check('the DSH client platform is declared', manifest.dsh?.client?.platform === 'web', JSON.stringify(manifest.dsh?.client))
 check('there are no runtime dependencies to audit', !manifest.dependencies || Object.keys(manifest.dependencies).length === 0,
   JSON.stringify(manifest.dependencies || {}))
+
+/* The package must not describe a write capability it does not have. */
+// NOTE: the plan's snippet uses `readdirSync` and `root`; here the directory is
+// `ROOT` and `readdirSync` had to be added to the node:fs import above.
+const recipeFiles = readdirSync(join(ROOT, 'lib', 'recipes')).filter((f) => f.endsWith('.json'))
+for (const file of recipeFiles) {
+  const recipe = JSON.parse(readFileSync(join(ROOT, 'lib', 'recipes', file), 'utf8'))
+  check(`${file} declares no balance write capability`, !recipe.balance || recipe.balance.write === null || recipe.balance.write === undefined)
+}
 
 console.log(`\n${failures === 0 ? 'PACK CHECK: PASS' : `PACK CHECK: FAIL (${failures})`}`)
 process.exit(failures === 0 ? 0 : 1)

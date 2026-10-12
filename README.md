@@ -102,6 +102,9 @@ Field notes:
 - `discover.derive`: append templates (`node_modules/<pkg>/<entry>`) resolved **next to a discovered shim**. Derived entries always outrank the shim they came from, because a `.ps1`/`.cmd` cannot be spawned without a shell. This is how Claude Code works: npm installs `claude.ps1`/`claude.cmd`, while the real entry is `.../@anthropic-ai/claude-code/bin/claude.exe`.
 - `output.errorFlag`: a path that forces `Ok=false` when truthy, even on exit code 0. Claude Code exits 0 and sets `is_error` instead of failing the process.
 - `output.usage` covers **both** output shapes: with `format: "json"` the paths are read once from the single object (`total_cost_usd`, `usage.input_tokens`, `num_turns`); with `jsonl` they are summed over the matching events (`step_finish` → cost/tokens).
+- `catalog`: where the model list really comes from — `{ kind: "jsonFile", path: [ … ], pick: "models", map: { id, label, credits, vendor }, excludeTags: [ … ], ttlMs }`. The first path that reads wins, the result is cached for `ttlMs`, and **any** failure (missing file, bad JSON, empty list) degrades to the recipe's own `models` with the reason in `catalogError`. `models` accepts the 0.1.x `string[]` **and** `{ id, label?, tier?, credits?, vendor? }` objects.
+- `balance`: the account balance, **read-only by construction** — `{ kind: "http", base, loginProbe, summary, map, unit }`. Exactly the two calls the recipe names are ever issued; no credential means `unauthenticated` without a request, and the four states (`ok` / `unauthenticated` / `unsupported` / `error`) never render a made-up number. A `balance.write` block is **rejected by the validator**: the plugin cannot describe a call that mutates an account.
+- `interpreter`: `{ "source": "self" }` runs a JavaScript agent CLI through the Node that is already hosting the plugin, instead of handing a `.js` file to the OS.
 - Unknown agents still work: point `prompt.via` at whatever flag the CLI takes and set `format: "text"`.
 
 ### Two shapes, both shipped and tested
@@ -110,6 +113,11 @@ Field notes:
 |---|---|---|---|---|
 | `opencode.json` | positional prompt, `--format json` | JSONL events | free | the answer is the concatenation of `type=text` events; cost only appears on tool-calling steps |
 | `claude.json` | `-p` + positional prompt, `--output-format json` | ONE json object | **paid** | native binary behind an npm shim (`derive`); a failed run still exits 0 (`errorFlag`) |
+| `workbuddy.json` | `-p` + positional prompt, `--output-format json` | ONE json object | **paid** | the CLI is a `.js` file, so it needs `interpreter.source: "self"`; two model catalogs (account-level first, install bundle second) |
+
+### WorkBuddy
+
+Tencent CodeBuddy Code. The desktop build ships **only the headless bundle** (`dist/codebuddy-headless.js`; there is no `dist/codebuddy.js`), so the interactive `/login` command does not exist in this install and the CLI has no `login`/`auth` subcommand. Authentication therefore comes from the environment (`CODEBUDDY_AUTH_TOKEN`); without it the CLI exits with `Authentication required` and the panel shows **「余额：未登录」** — the honest state, not a number. The model picker still works: it is read from the account-level catalog (`%USERPROFILE%\.workbuddy\cache\acc-product-config-v3.json`) with the install bundle's `product.json` as fallback, and each entry carries its `免费` / `付费 x0.21` badge.
 
 Each recipe has a **recorded real fixture** in `fixtures/` (shipped inside the package); `npm test` replays it, so a recipe whose CLI changed behaviour fails before it fails for a user.
 
@@ -126,7 +134,7 @@ Both supported ways are data-only:
 
 ## Publishing
 
-`npm test` runs **eleven suites offline** (no network, no DSH, no agent CLI, nothing to install — the package has no runtime dependencies). `pack-check.mjs` packs the package with `npm pack --dry-run` and asserts that the manifest only promises files that are really inside the tarball, that **no install-time lifecycle hook** exists, and that `tests/`, `node_modules/` and dotfiles stay out. Current payload: **14 files, ~38 KiB, zero runtime dependencies**.
+`npm test` runs **fifteen suites offline** (no network, no DSH, no agent CLI, nothing to install — the package has no runtime dependencies). `pack-check.mjs` packs the package with `npm pack --dry-run` and asserts that the manifest only promises files that are really inside the tarball, that **no install-time lifecycle hook** exists, and that `tests/`, `node_modules/` and dotfiles stay out. Current payload: **19 files, ~50 KiB, zero runtime dependencies**.
 
 CI runs that suite on **ubuntu / macos / windows × node 20 / 22**, which is what backs the cross-platform claim; the runs that need a real agent CLI (and, for the paid adapter, real credits) are opt-in through `LIVE_PAID=1` / `LIVE_TOOLS=1` and stay out of CI.
 

@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.2.0
+
+- **New agent: WorkBuddy** (Tencent CodeBuddy Code). Headless-only: this desktop build ships
+  `dist/codebuddy-headless.js` but not the TUI bundle, so the interactive `/login` cannot run.
+  Authentication comes from `CODEBUDDY_AUTH_TOKEN`; without it the CLI reports
+  `Authentication required` and the panel says "未登录" rather than inventing a number.
+- **Model picker with free/paid badges**, for every agent. Catalogs are declared in the recipe
+  (`catalog`) and read from disk with a TTL cache; a missing or malformed catalog degrades to the
+  recipe's own static list with the reason attached.
+- **Balance display** (four states: ok / unauthenticated / unsupported / error). Read-only by
+  construction — `balance.write` is rejected by the schema, so the plugin cannot describe a call
+  that mutates an account.
+- **`interpreter`** on a recipe, so a JavaScript agent CLI runs through the Node that is already
+  hosting the plugin (`source: "self"`).
+- `agent_list` now returns normalized `models` objects; `modelIds` keeps the 0.1.x `string[]`
+  contract working.
+
 ## 0.1.2
 
 - Docs only: a full **Chinese README** (`README.zh-CN.md`) with a language switcher, plus badges for CI / npm version / downloads / license / node / zero dependencies. Both READMEs ship in the package.
