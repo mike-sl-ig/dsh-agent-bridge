@@ -445,6 +445,14 @@ check('the route reports the last injected reminder',
     && /Agent 桥接/.test(String(receiptBody.reminder.text)),
   JSON.stringify(receiptBody.reminder).slice(0, 160))
 
+/* The panel route needs a web session, so the MODEL cannot read it: the same
+ * receipt has to be reachable through agent_list, or the only way to check that
+ * the bridge is speaking is to ask a human to read their screen. */
+const listWithReceipt = await tools.get('agent_list').execute({})
+check('agent_list reports the same receipt, so the model can verify it',
+  Boolean(listWithReceipt.reminder) && /Agent 桥接/.test(String(listWithReceipt.reminder.text)),
+  JSON.stringify(listWithReceipt.reminder || null).slice(0, 160))
+
 const again = await preStep({ agent: { id: 'a' }, messages: [{ role: 'user' }], step: 1, signal: undefined }, async () => ({ kind: 'enter', messages: [{ role: 'user' }] }))
 check('the same step does not inject twice', again.messages.length === 1)
 
