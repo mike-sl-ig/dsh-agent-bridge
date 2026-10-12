@@ -48,9 +48,14 @@
   ],
 
   // 运行时模型目录：优先于静态 models
+  // 双源：账号级配置优先（桌面端真正显示的那份，带中文名/促销/等级），
+  // 缺失时回退安装目录的 product.json。两者 models[] 结构一致，可共用 map。
   "catalog": {
     "kind": "jsonFile",                 // jsonFile | argv | none
-    "path": "%WORKBUDDY_CLI%\\..\\product.json",
+    "path": [
+      "%USERPROFILE%\\.workbuddy\\cache\\acc-product-config-v3.json",
+      "%WORKBUDDY_CLI%\\..\\product.json"
+    ],
     "pick": "models",
     "map": { "id": "id", "label": "name", "credits": "credits", "vendor": "vendor" },
     "excludeTags": ["text-to-image", "text-to-video", "image-to-video"],
@@ -148,9 +153,36 @@ spawn 变成 `[process.execPath, <cliPath>, ...args]`。
 
 ## 7. 风险与未决
 
-- **余额尚未实测**：本机 CLI 未登录，结论全部来自静态代码证据。登录后需实测
-  `/console/accounts` 与 summary 的真实返回，`map` 字段可能要按实测修正。
-- `/v2` 前缀可能随部署形态变化（代码中另有不带前缀的调用点）。recipe 里保留
+### 7.1 鉴权（已查清，2026-10-12 22:3x）
+
+**该安装包内的 CLI 无法自助登录。** 证据：
+
+- `bin/codebuddy` 是 bundle 分派器：`-p/--print/--version/--help/--acp` 等走 headless，
+  否则走 TUI（`require('../dist/codebuddy')`）。**`dist/` 里只有 `codebuddy-headless.js`
+  和 `codebuddy-lite-wb.mjs`，没有 `codebuddy.js`** → 交互式 TUI 未随包发布，
+  用户敲 `node codebuddy` 必然 `MODULE_NOT_FOUND`。
+- 因此 TUI 里的 `/login` 不存在；`-p "/login"` 只是把静态提示当输出打出来。
+- CLI 无 `login` / `auth` 子命令。
+- 桌面端凭证为加密存储（`keyblob` = `{"suite":1,...}`；`security/<uid>/cipher|data`）。
+  **本设计不解密它们。**
+- CLI 支持的注入通道：`CODEBUDDY_AUTH_TOKEN`，或 `ACC_PRODUCT_CONFIG_PATH` 指向
+  一份 `authentication.type === CUSTOM_TOKEN` 且带 `attributes.token` 的配置
+  （`hasSpilledAccProductConfigCustomToken()`）。桌面端若这样做，会把临时文件写到磁盘
+  —— 但在本机 `%TEMP%` / `.workbuddy` / `.codebuddy` 全量扫描（209 个候选文件）
+  **未找到**此类文件（桌面端为同进程运行 CLI sidecar，未落盘）。
+
+**后果**：余额无法在 v0.2.0 实测，四态里的 `unauthenticated` 就是当前真实状态。
+恢复路径（任一即可，均无需改插件代码）：把 `CODEBUDDY_AUTH_TOKEN` 放进环境；
+或改用带 TUI 的官方 CLI 发行版完成 `/login`，令 `~/.codebuddy/.credentials.json` 出现。
+
+### 7.2 其他
+
+- 模型目录有两份且内容不同：安装级 `product.json`（`glm-5.2` 等 49 条，`credits` 形如
+  `"x0.79 credits"`）与账号级 `acc-product-config-v3.json`（`快速`/`均衡` 等，`credits`
+  形如 `"x0.21"`）。**`parseCredits` 必须同时吃下 `"x0.79 credits"` 与 `"x0.21"` 两种写法。**
+- `/v2` 前缀可能随部署形态变化（代码中另有不带前缀的调用点）。recipe 保留
   `base` + 完整 path，便于用户本地覆盖。
-- 余额端点属内部接口，可能无预告变更。因此 `balance` 全程可降级，
-  失败只影响余额行，**绝不影响模型选择与运行**。
+- 余额端点属内部接口，可能无预告变更。`balance` 全程可降级，失败只影响余额行，
+  **绝不影响模型选择与运行**。
+- `modelTiers` / `modelPromotions` 是"订阅优先/促销"徽章，与"免费/付费"不是同一维度，
+  v0.2.0 只用 `credits` 判免费付费，促销徽章不在范围内。
