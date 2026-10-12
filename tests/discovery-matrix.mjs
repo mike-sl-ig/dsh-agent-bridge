@@ -62,19 +62,18 @@ check('win32: PATHEXT order decides between two real shims',
 check('posix: the bare name is still the only candidate',
   findOnPath(['codebuddy'], { PATH: shimDir }, 'linux') === join(shimDir, 'codebuddy'))
 
-/* The npm install of the CodeBuddy CLI puts only shims on PATH; the entry that
- * must be spawned with `node` lives inside the package. Same shim→real pattern
- * as claude, and the DERIVED entry has to win or the recipe would hand a .cmd
- * to node. */
+/* The npm install of the CodeBuddy CLI is a DIFFERENT PRODUCT: its own
+ * product.json says www.codebuddy.ai, while the identical relative path inside
+ * the WorkBuddy install says www.workbuddy.cn. Same binary + wrong product
+ * config = "Authentication required" (measured 2026-10-13). So this recipe must
+ * not let a PATH entry outrank the install it belongs to. */
 const workbuddy = loadRecipe(join(ROOT, 'lib', 'recipes', 'workbuddy.json'))
-const npmRoot = join(base, 'win', 'npm-global')
-touch(join(npmRoot, 'codebuddy.cmd'))
-touch(join(npmRoot, 'node_modules', '@tencent-ai', 'codebuddy-code', 'bin', 'codebuddy'))
-const wbFound = discover(workbuddy, { PATH: npmRoot }, 'win32')
-check('win32: the npm codebuddy shim derives the package\'s real JS entry',
-  Boolean(wbFound[0]) && /^derived/.test(wbFound[0].source)
-    && wbFound[0].path.endsWith(join('@tencent-ai', 'codebuddy-code', 'bin', 'codebuddy')),
-  JSON.stringify(wbFound.slice(0, 2)))
+check('the workbuddy recipe does not discover through PATH',
+  !workbuddy.discover.bin || workbuddy.discover.bin.length === 0,
+  JSON.stringify(workbuddy.discover.bin))
+check('it declares the product config the CLI needs',
+  workbuddy.run.env && workbuddy.run.env.ACC_PRODUCT_CONFIG_PATH === '{cliDir}/../product.json',
+  JSON.stringify(workbuddy.run.env))
 
 const winClaude = discover(claude, winEnv, 'win32')
 check('win32: the spawnable real entry outranks the .cmd shim',

@@ -4,14 +4,10 @@
   "vendor": "Tencent",
   "cost": "paid",
   "homepage": "https://www.workbuddy.cn",
-  "notes": "Tencent CodeBuddy Code (genie). This desktop build ships ONLY the headless bundle: dist/codebuddy-headless.js exists, dist/codebuddy.js (the TUI) does not, so the interactive /login command is unavailable. Authentication therefore comes from the environment (CODEBUDDY_AUTH_TOKEN) or from a desktop-spilled ACC product config; without one the CLI exits with 'Authentication required'.",
+  "notes": "Tencent CodeBuddy Code (genie). This desktop build ships only the headless bundle, so `/login` cannot run from it; the account session was established with the full npm distribution (@tencent-ai/codebuddy-code) launched against THIS install's product.json, and both binaries share the resulting stored session. CRITICAL: the CLI takes its whole product identity from ACC_PRODUCT_CONFIG_PATH (see run.env). The identical relative path inside the npm package holds a CodeBuddy config (www.codebuddy.ai), and the same binary then rejects a WorkBuddy account with 'Authentication required' — which is why discovery ignores PATH and accepts only this install's own entry. Output is a JSON ARRAY of events whose last element is the result.",
 
   "discover": {
     "env": ["WORKBUDDY_CLI", "CODEBUDDY_CLI"],
-    "bin": ["codebuddy", "cbc"],
-    "derive": [
-      { "append": "node_modules/@tencent-ai/codebuddy-code/bin/codebuddy" }
-    ],
     "paths": {
       "win32": [
         "%WORKBUDDY_HOME%\\resources\\app.asar.unpacked\\cli\\bin\\codebuddy",
@@ -38,6 +34,7 @@
 
   "run": {
     "argv": ["-p", "--output-format", "json"],
+    "env": { "ACC_PRODUCT_CONFIG_PATH": "{cliDir}/../product.json" },
     "prompt": { "via": "positional" },
     "model": { "flag": ["--model"] },
     "session": { "flag": ["--session-id"] },
@@ -47,9 +44,11 @@
 
   "output": {
     "format": "json",
-    "answer": { "pick": "result" },
+    "answer": { "where": { "type": "result" }, "pick": "result" },
     "session": { "pick": "session_id" },
+    "errorFlag": "is_error",
     "usage": {
+      "where": { "type": "result" },
       "cost": "total_cost_usd",
       "input": "usage.input_tokens",
       "output": "usage.output_tokens",

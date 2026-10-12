@@ -141,5 +141,29 @@ check('lossless predicate: rejects a non-enumerable own property',
 check('lossless predicate: rejects a sparse array', !isLosslessJson([1, , 3]))
 check('lossless predicate: rejects a class instance', !isLosslessJson(new (class Point { constructor() { this.x = 1 } })()))
 
+/* ---- WorkBuddy/CodeBuddy prints a JSON ARRAY of events --------------------
+ * Measured 2026-10-13 against the real CLI: `codebuddy -p --output-format json`
+ * emits a pretty-printed 4-element array whose LAST element is the result. The
+ * recipe declared `answer.pick: "result"` against a single object, so a run that
+ * had actually succeeded came back with an EMPTY answer — the bridge reported
+ * "FAILED — no answer was produced" for a process that exited 0. */
+const workbuddy = loadRecipe(join(RECIPES, 'workbuddy.json'))
+const wbArray = JSON.stringify([
+  { type: 'message', role: 'assistant', content: 'thinking out loud' },
+  { type: 'file-history-snapshot', messageId: 'm1', snapshot: {} },
+  {
+    type: 'result', subtype: 'success', is_error: false, result: 'WB-OK',
+    session_id: 'ses_wb', num_turns: 2, total_cost_usd: 0,
+    usage: { input_tokens: 5, output_tokens: 2, cache_read_input_tokens: 1 },
+  },
+], null, 2)
+const wbParsed = parseFixture(workbuddy, wbArray)
+check('workbuddy: an array-shaped JSON stream yields the answer', wbParsed.Answer === 'WB-OK', JSON.stringify(wbParsed.Answer))
+check('workbuddy: and the session id', wbParsed.Session === 'ses_wb', wbParsed.Session)
+check('workbuddy: and the token usage', wbParsed.Tokens.Input === 5 && wbParsed.Tokens.Output === 2, JSON.stringify(wbParsed.Tokens))
+check('workbuddy: and it counts as ok', wbParsed.Ok === true)
+const wbFailed = parseFixture(workbuddy, JSON.stringify([{ type: 'result', is_error: true, result: 'boom' }]))
+check('workbuddy: is_error still fails a run delivered inside an array', wbFailed.Ok === false, String(wbFailed.Ok))
+
 console.log(`\n${failures === 0 ? 'RECIPE FIXTURES: PASS' : `RECIPE FIXTURES: FAIL (${failures})`}`)
 process.exit(failures === 0 ? 0 : 1)
