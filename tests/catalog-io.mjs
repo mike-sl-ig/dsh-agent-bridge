@@ -62,5 +62,55 @@ clearCatalogCache()
 const objectsInRecipe = await readCatalog({ id: 'x', models: [{ id: 'glm-5.2', tier: 'paid' }] }, { now: () => 1 })
 check('object models in a recipe survive', objectsInRecipe.models[0].tier === 'paid')
 
+/* ---- argv catalogs: the CLI itself is the source of truth ----------------
+ * A static list goes stale the moment the vendor ships a model (OpenCode's did:
+ * 8 written down, 11 on offer), so a recipe may point at the CLI instead. */
+
+clearCatalogCache()
+const argvRecipe = {
+  id: 'opencode',
+  models: ['opencode/stale-static-entry'],
+  catalog: { kind: 'argv', argv: ['models'], parse: 'lines', ttlMs: 1000 },
+}
+let runs = 0
+const cliText = 'opencode/big-pickle\nopencode/mimo-v2.6-flash-free\n\n'
+const argvResult = await readCatalog(argvRecipe, { run: async () => { runs++; return cliText }, now: () => 1 })
+check('an argv catalog runs the CLI', runs === 1)
+check('and parses one model per line',
+  argvResult.models.map((m) => m.id).join(',') === 'opencode/big-pickle,opencode/mimo-v2.6-flash-free',
+  argvResult.models.map((m) => m.id).join(','))
+check('and strips the vendor prefix from the label', argvResult.models[0].label === 'big-pickle', argvResult.models[0].label)
+check('and keeps the vendor', argvResult.models[0].vendor === 'opencode', argvResult.models[0].vendor)
+check('and classifies -free as free', argvResult.models[1].tier === 'free')
+check('blank lines are ignored', argvResult.models.length === 2)
+check('and it reports the argv source', argvResult.source === 'argv')
+
+clearCatalogCache()
+runs = 0
+await readCatalog(argvRecipe, { run: async () => { runs++; return cliText }, now: () => 1500 })
+check('argv catalogs are cached like file catalogs', runs === 1)
+
+clearCatalogCache()
+const argvBroken = await readCatalog(argvRecipe, { run: async () => { throw new Error('CLI exited 1') }, now: () => 1 })
+check('a failing catalog command degrades to the static list', argvBroken.models[0].id === 'opencode/stale-static-entry')
+check('and says why', argvBroken.catalogError.includes('CLI exited 1'), argvBroken.catalogError)
+
+clearCatalogCache()
+const argvNoRunner = await readCatalog(argvRecipe, { now: () => 1 })
+check('a missing runner degrades instead of throwing', argvNoRunner.source === 'recipe' && argvNoRunner.catalogError !== '')
+
+clearCatalogCache()
+const jsonRecipe = {
+  id: 'x', models: [],
+  catalog: { kind: 'argv', argv: ['list', '--json'], parse: 'json', pick: 'data', map: { id: 'id', label: 'name' } },
+}
+const jsonResult = await readCatalog(jsonRecipe, { run: async () => JSON.stringify({ data: [{ id: 'a', name: 'A' }] }), now: () => 1 })
+check('an argv catalog can parse JSON instead of lines',
+  jsonResult.models[0].id === 'a' && jsonResult.models[0].label === 'A', JSON.stringify(jsonResult.models))
+
+clearCatalogCache()
+const jsonBad = await readCatalog(jsonRecipe, { run: async () => 'not json', now: () => 1 })
+check('unparseable JSON degrades instead of throwing', jsonBad.source === 'recipe')
+
 console.log(failures ? `\n${failures} failure(s)` : '\nall good')
 process.exit(failures ? 1 : 0)

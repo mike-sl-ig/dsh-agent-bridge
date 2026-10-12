@@ -68,6 +68,14 @@
     }
   },
 
+  "catalog": {
+    "kind": "argv",
+    "argv": ["models"],
+    "parse": "lines",
+    "ttlMs": 300000,
+    "notes": "`opencode models` prints one id per line and is the only list that cannot go stale; the `models` array below is the offline fallback when the CLI cannot be run."
+  },
+
   "models": [
     "opencode/longcat-2.5-preview-free",
     "opencode/big-pickle",

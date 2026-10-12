@@ -128,6 +128,10 @@ check('a valid catalog.excludeIdPattern validates',
   v({ ...demoBase, catalog: { kind: 'none', excludeIdPattern: 'completion' } }).ok)
 check('an uncompilable catalog.excludeIdPattern is rejected',
   !v({ ...demoBase, catalog: { kind: 'none', excludeIdPattern: '[' } }).ok)
+check('an argv catalog validates',
+  v({ ...demoBase, catalog: { kind: 'argv', argv: ['models'], parse: 'lines' } }).ok)
+check('a bogus catalog.parse is rejected',
+  !v({ ...demoBase, catalog: { kind: 'argv', argv: ['models'], parse: 'guess' } }).ok)
 
 check('a balance block validates', v({ ...demoBase, balance: { kind: 'http', base: 'https://x', summary: { method: 'POST', path: '/y' }, write: null } }).ok)
 check('a balance write capability is rejected', !v({ ...demoBase, balance: { kind: 'http', base: 'https://x', summary: { method: 'POST', path: '/y' }, write: { method: 'POST', path: '/z' } } }).ok)
@@ -158,6 +162,13 @@ check('its balance is read-only', wb.balance.write === null)
 check('its balance has no write endpoint', !JSON.stringify(wb.balance).includes('checkin'))
 check('its catalog keeps only tool-calling chat models', wb.catalog.require.supportsToolCall === true)
 check('its catalog drops completion models by id', wb.catalog.excludeIdPattern === 'completion')
+
+/* ---- the bundled OpenCode recipe asks the CLI, not a hardcoded list ---- */
+const oc = loadRecipe(join(process.cwd(), 'lib', 'recipes', 'opencode.json'))
+check('the bundled opencode recipe validates', validateRecipe(oc).ok, validateRecipe(oc).problems.join('; '))
+check('opencode asks its own CLI for the model list', oc.catalog.kind === 'argv' && oc.catalog.argv.join(' ') === 'models')
+check('opencode parses one model per line', oc.catalog.parse === 'lines')
+check('opencode keeps a static list as the offline fallback', Array.isArray(oc.models) && oc.models.length > 0)
 
 console.log(`\n${failures === 0 ? 'RECIPE WIZARD: PASS' : `RECIPE WIZARD: FAIL (${failures})`}`)
 process.exit(failures === 0 ? 0 : 1)

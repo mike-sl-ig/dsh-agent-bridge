@@ -2,6 +2,13 @@
 
 ## 0.3.0
 
+- **`catalog.kind: "argv"` was a promise the schema made and the code did not keep.** The validator
+  listed `argv` as legal while `readCatalog` threw `"not supported"` and quietly fell back to the
+  static list. It is implemented now: a recipe can point at its own CLI (`opencode models`, one id
+  per line, `parse: "lines"`; `parse: "json"` for CLIs that answer in JSON). OpenCode's picker was
+  the proof it mattered — the recipe listed **8** models while the authenticated CLI offers **41**
+  (Claude, GPT, Gemini, Grok, Qwen …), so two thirds of what the user could run was invisible. The
+  static array stays as the offline fallback when the CLI cannot be run.
 - **The model picker stops offering models that cannot do the job.** WorkBuddy's account catalog
   lists 55 models, and 12 of them are completion / NES-completion / internal engines that have no
   business in an agent picker. They are also exactly the entries with no `supportsToolCall`, so the
