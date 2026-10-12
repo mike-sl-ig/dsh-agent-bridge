@@ -97,5 +97,40 @@ if (opencodeCapture) {
   console.log('SKIP draft-on-jsonl: no recorded stream available')
 }
 
+/* ---- 0.2.0: catalog / balance / interpreter, and object models ---- */
+const v = validateRecipe
+
+// NOTE: the plan's snippet calls this `base`, which is already bound at the top
+// of this file (the opencode recipe clone). Renamed so the appended block does
+// not collide with it.
+const demoBase = {
+  id: 'demo', label: 'Demo', cost: 'free',
+  discover: { bin: ['demo'] },
+  run: { argv: ['-p'], prompt: { via: 'positional' } },
+  output: { format: 'json', answer: { pick: 'result' } },
+}
+
+check('legacy string models still validate', v({ ...demoBase, models: ['a/b'] }).ok)
+check('object models validate', v({ ...demoBase, models: [{ id: 'a/b', label: 'B', tier: 'paid', credits: 'x0.79' }] }).ok)
+check('object models without an id are rejected', !v({ ...demoBase, models: [{ label: 'B' }] }).ok)
+check('a bogus tier is rejected', !v({ ...demoBase, models: [{ id: 'a', tier: 'cheap' }] }).ok)
+check('a non-array models is rejected', !v({ ...demoBase, models: 'a/b' }).ok)
+
+check('a catalog block validates', v({ ...demoBase, catalog: { kind: 'jsonFile', path: ['%USERPROFILE%\\.workbuddy\\cache\\acc-product-config-v3.json'], pick: 'models' } }).ok)
+check('catalog.kind is required', !v({ ...demoBase, catalog: { path: ['x'] } }).ok)
+check('a bogus catalog.kind is rejected', !v({ ...demoBase, catalog: { kind: 'telepathy' } }).ok)
+check('jsonFile catalog needs a path', !v({ ...demoBase, catalog: { kind: 'jsonFile' } }).ok)
+check('catalog.excludeTags must be strings', !v({ ...demoBase, catalog: { kind: 'none', excludeTags: [1] } }).ok)
+
+check('a balance block validates', v({ ...demoBase, balance: { kind: 'http', base: 'https://x', summary: { method: 'POST', path: '/y' }, write: null } }).ok)
+check('a balance write capability is rejected', !v({ ...demoBase, balance: { kind: 'http', base: 'https://x', summary: { method: 'POST', path: '/y' }, write: { method: 'POST', path: '/z' } } }).ok)
+check('a bogus balance.kind is rejected', !v({ ...demoBase, balance: { kind: 'carrier-pigeon' } }).ok)
+
+check('interpreter source self validates', v({ ...demoBase, interpreter: { source: 'self' } }).ok)
+check('a bogus interpreter source is rejected', !v({ ...demoBase, interpreter: { source: 'vibes' } }).ok)
+
+check('an imported recipe may use the new keys', validateRecipe({ ...demoBase, catalog: { kind: 'none' }, balance: { kind: 'none' }, interpreter: { source: 'self' } }, { strictKeys: true }).ok)
+check('an imported recipe still rejects unknown keys', !validateRecipe({ ...demoBase, wat: 1 }, { strictKeys: true }).ok)
+
 console.log(`\n${failures === 0 ? 'RECIPE WIZARD: PASS' : `RECIPE WIZARD: FAIL (${failures})`}`)
 process.exit(failures === 0 ? 0 : 1)
