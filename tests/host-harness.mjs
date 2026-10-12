@@ -254,6 +254,31 @@ if (process.env.SKIP_LIVE_RUN === '1') {
       fixtureOk: r.fixture ? r.fixture.ok : null, probeOk: r.probe ? r.probe.ok : null,
     }))))
 
+  /* A vendor-side refusal (retired model, rejected credential) is not a bug in
+   * this repository, so it is skipped LOUDLY with its raw text. Every other
+   * failure still fails. Same rule as the draft checks above and migration.mjs.
+   * The reason lives on stdout (JSONL), not on stderr and not on the result. */
+  const vendorRefused = (res) => {
+    if (!res || res.Ok === true) return false
+    let log = ''
+    try { log = readFileSync(res.OutFile, 'utf8') } catch { /* no log file */ }
+    return /deprecated|invalid-request|invalid credential|upstream request failed|provider\.auth|\b(401|403|410)\b/i
+      .test(`${log.slice(0, 800)}\n${res.Stderr || ''}`)
+  }
+  const refusalWhy = (res) => {
+    let log = ''
+    try { log = readFileSync(res.OutFile, 'utf8') } catch { /* no log file */ }
+    return `the opencode provider refused the call: ${log.trim().slice(0, 220) || '(no stdout)'}`
+  }
+  const liveCheck = (name, ok, detail, refused, why) => {
+    if (refused) {
+      console.log(`SKIP ${name}`)
+      console.log(`     ${why}`)
+      return
+    }
+    check(name, ok, detail)
+  }
+
   const started = Date.now()
   const { result, summary } = await tools.get('agent_run').execute({
     prompt: 'Reply with exactly: HOST-OK',
@@ -263,8 +288,26 @@ if (process.env.SKIP_LIVE_RUN === '1') {
   })
   const elapsed = ((Date.now() - started) / 1000).toFixed(1)
 
-  check('agent_run produced an answer', result.Ok === true && result.Answer.includes('HOST-OK'),
-    `ok=${result.Ok} answer=${JSON.stringify(result.Answer)} elapsed=${elapsed}s`)
+  const runRefused = vendorRefused(result)
+  liveCheck('agent_run produced an answer', result.Ok === true && result.Answer.includes('HOST-OK'),
+    `ok=${result.Ok} answer=${JSON.stringify(result.Answer)} elapsed=${elapsed}s`,
+    runRefused, refusalWhy(result))
+
+  /* A refusal is still a RESULT, and the whole point of surfacing the CLI's own
+   * error is that this case explains itself. So the refused path is not a hole
+   * in the suite — it is where the error-reporting contract gets verified, with
+   * a real vendor error rather than a fixture. */
+  if (runRefused) {
+    check('a refused run reports WHY (the CLI error reaches the result)',
+      result.Error.length > 0 && result.ErrorCode.length > 0,
+      `${result.ErrorCode} :: ${result.Error}`)
+    check('the report prints the reason instead of a bare placeholder',
+      readFileSync(summary.Report, 'utf8').includes(result.Error),
+      result.Error)
+    check('last-run.json carries the reason the panel shows',
+      String(JSON.parse(readFileSync(LAST_RUN, 'utf8')).Error || '') === result.Error,
+      LAST_RUN)
+  }
   // What matters is "no retry" and "no runaway tool use"; step_finish events can
   // appear for a plain one-step answer depending on the CLI version, so the
   // assertion is on tool CALLS, not steps.
@@ -275,7 +318,12 @@ if (process.env.SKIP_LIVE_RUN === '1') {
     `${result.Agent}/${result.Mode}`)
   check('agent_run extracted a session id', /^ses_/.test(result.Session), result.Session)
   check('agent_run wrote a markdown report', Boolean(summary.Report) && existsSync(summary.Report), summary.Report)
-  check('agent_run published last-run.json', existsSync(LAST_RUN) && JSON.parse(readFileSync(LAST_RUN, 'utf8')).Answer.includes('HOST-OK'), LAST_RUN)
+  const lastRunHasAnswer = (() => {
+    try { return existsSync(LAST_RUN) && String(JSON.parse(readFileSync(LAST_RUN, 'utf8')).Answer || '').includes('HOST-OK') }
+    catch { return false }
+  })()
+  liveCheck('agent_run published last-run.json', lastRunHasAnswer, LAST_RUN,
+    runRefused, 'the run never produced an answer, so last-run.json cannot carry one')
   check('report contains the answer and the prompt', (() => {
     if (!summary.Report || !existsSync(summary.Report)) return false
     const text = readFileSync(summary.Report, 'utf8')
@@ -305,9 +353,10 @@ if (process.env.SKIP_LIVE_RUN === '1') {
     mode: 'verify',
     timeoutMs: 120000,
   })
-  check('verify mode forbids tools and still answers in one pass',
+  liveCheck('verify mode forbids tools and still answers in one pass',
     verifyRun.result.Ok === true && verifyRun.result.Tools.length === 0 && verifyRun.result.Answer.length > 0,
-    `ok=${verifyRun.result.Ok} tools=${verifyRun.result.Tools.length} seconds=${verifyRun.result.Seconds}`)
+    `ok=${verifyRun.result.Ok} tools=${verifyRun.result.Tools.length} seconds=${verifyRun.result.Seconds}`,
+    vendorRefused(verifyRun.result), refusalWhy(verifyRun.result))
   check('verify mode really injected the no-tools prefix',
     /Do NOT call any tool/.test(verifyRun.result.Args) && /INDEPENDENT VERIFIER/.test(verifyRun.result.Args))
 }

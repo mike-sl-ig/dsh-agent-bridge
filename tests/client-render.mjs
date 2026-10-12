@@ -231,5 +231,22 @@ check('unsupported renders no balance row', !unsupported.includes('未登录') &
 const reminded = renderPanel({ ...withCatalog, remind: true })
 check('the panel offers the advisory reminder switch', reminded.includes('自动提醒'))
 
+/* Hook slots are seed-by-index: 0=open 1=state 2=agents 3=last — so the
+ * "最近一次运行" card is reachable by seeding slot 3. */
+function renderWithLast(payload, last) {
+  const h = makeHarness()
+  return textOf(h.seed(hooks({ 1: payload, 2: payload.agents, 3: last })))
+}
+const refused = renderWithLast(withCatalog, {
+  Ok: false, Agent: 'opencode', Mode: 'verify', Seconds: 1, ToolCalls: 0,
+  Error: 'Upstream request failed: Invalid credential', ErrorCode: 'provider.auth/401',
+})
+check('a failed run shows the CLI reason, not a bare placeholder',
+  refused.includes('失败原因') && refused.includes('Invalid credential'))
+check('and shows the error code', refused.includes('provider.auth/401'))
+const unexplained = renderWithLast(withCatalog, { Ok: false, Agent: 'opencode', Mode: 'verify', Error: '' })
+check('an unexplained failure still says there was no answer',
+  unexplained.includes('没有产出最终答案') && !unexplained.includes('失败原因'))
+
 console.log(`\n${failures === 0 ? 'CLIENT RENDER: PASS' : `CLIENT RENDER: FAIL (${failures})`}`)
 process.exit(failures === 0 ? 0 : 1)

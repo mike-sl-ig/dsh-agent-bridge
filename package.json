@@ -56,7 +56,7 @@
     "node": ">=20"
   },
   "scripts": {
-    "test": "node tests/client-boot.mjs && node tests/client-render.mjs && node tests/recipe-wizard.mjs && node tests/parse-fixtures.mjs && node tests/parse-recorded.mjs && node tests/stdin-transport.mjs && node tests/discovery-matrix.mjs && node tests/registry-import.mjs && node tests/pack-check.mjs && node tests/migration.mjs && node tests/host-harness.mjs && node tests/catalog-normalize.mjs && node tests/catalog-io.mjs && node tests/balance.mjs && node tests/interpreter.mjs && node tests/reminder.mjs",
+    "test": "node tests/client-boot.mjs && node tests/client-render.mjs && node tests/recipe-wizard.mjs && node tests/parse-fixtures.mjs && node tests/parse-recorded.mjs && node tests/stdin-transport.mjs && node tests/discovery-matrix.mjs && node tests/registry-import.mjs && node tests/pack-check.mjs && node tests/migration.mjs && node tests/host-harness.mjs && node tests/catalog-normalize.mjs && node tests/catalog-io.mjs && node tests/balance.mjs && node tests/interpreter.mjs && node tests/reminder.mjs && node tests/error-surface.mjs",
     "test:smoke": "node tests/launch-smoke.mjs"
   }
 }

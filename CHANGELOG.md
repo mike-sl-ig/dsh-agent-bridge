@@ -2,6 +2,12 @@
 
 ## 0.3.0
 
+- **A failed run now says why.** Both shipped JSON agents report failure INSIDE the stream rather
+  than on stderr — OpenCode and CodeBuddy both write
+  `{"type":"error","error":{"type","message","status"}}` and exit 1 — so a failure used to read
+  "(没有产出最终答案)" while the actual reason (a 401) sat unread in the raw log. The CLI's error is
+  now normalized into `Error` / `ErrorCode`, printed as a table row in the report, carried in
+  `last-run.json`, and shown in the panel as "失败原因：… [provider.auth/401]".
 - **The enabled features are no longer invisible.** verify / bulk / second only ever did anything
   once `agent_run` was called, so the user had to name an agent in every prompt. The bridge now
   registers DSH's `agent/pre-step` waterfall — the same hook `@deepseek-ai/dsh-agent-instructions`
