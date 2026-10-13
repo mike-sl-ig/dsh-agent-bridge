@@ -1,5 +1,31 @@
 # Changelog
 
+## 0.4.1
+
+- **The plugin now says which DSH versions it supports**, instead of loading silently into any of
+  them: `peerDependencies['@deepseek-ai/dsh'] = ">=0.2.0-rc.2 <0.3.0"`. DSH evaluates that field in
+  `packages/boot/app-boot/src/plugin-compatibility.ts` with
+  `semver.satisfies(runtime, range, { includePrerelease: true })` and refuses (or warns, with an
+  exact-version exemption to override) when it does not hold. The `includePrerelease` option is what
+  makes a prerelease runtime like `0.2.1-alpha.2` admissible at all — under default semver rules the
+  prerelease-exclusion rule would reject it.
+- **Audited against 0.2.1-alpha.2** (tag `dsh-v0.2.1-alpha.2`, commit `d7432673`) by reading that
+  source. All six API surfaces this plugin depends on are unchanged: the
+  `conversation.session.header.utilities` slot (the official `session-log-export` plugin registers
+  into it with the identical call), `ctx.slots.register` (`name` required, `id`/`label`/`order`
+  optional), `ctx.get('tools')` + `tools.register`, `connection.fetch.register` (same options shape,
+  same `/api/` path validation), `agent/pre-step` with `{ kind: 'enter', messages }`, and the
+  `dsh.client.platform` + `exports["./client"]` + `dsh.bundle.patch` contract. None of the 0.2.1
+  breaking changes apply: no `./invariant` export, no composer statistics row, no tool-presentation
+  mode, no per-row `dshHome` agent-instructions config, and this is a package-root plugin rather
+  than a subpath one.
+- New suite member `tests/compat-manifest.mjs` (18 files total) pins that promise: the declared range
+  must admit every runtime the suite has been run against (`0.2.0-rc.2`, `0.2.1-alpha.1`,
+  `0.2.1-alpha.2`, `0.2.1`) and refuse `0.3.0`, so a future version bump cannot quietly extend the
+  claim. It carries its own comparator because this package has **no dependencies**; that comparator
+  was cross-checked against the real `semver` library over 66 (range, version) pairs using DSH's
+  exact call shape — 0 mismatches.
+
 ## 0.4.0
 
 - **More than one agent can be switched on at once.** The panel used to radio-select a single
