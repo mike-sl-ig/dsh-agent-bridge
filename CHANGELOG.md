@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.4.5
+
+- **`run.env` can now say "keep this variable out of the child", by giving it `null`.** Presence
+  alone can be identity: WorkBuddy reads *any* `CODEBUDDY_AUTH_TOKEN` as its own credential — an
+  empty string included (measured: it reported `token-length:1` and then answered
+  `401 Authentication required`, ignoring a perfectly good stored login) — and a non-Latin1 value
+  kills every run before a request leaves with the runtime's ByteString error. Overriding with `""`
+  is therefore not the same as not sending it, which is why the recipe needs `null`.
+  `lib/engine.js resolveRunEnv` deletes such a key (and never mutates the environment it was handed),
+  `lib/recipe.js` accepts `null` while still rejecting any other non-string, and four new checks in
+  `tests/interpreter.mjs` pin it.
+- **`lib/recipes/workbuddy.json` uses it for `CODEBUDDY_AUTH_TOKEN`**, so a stray credential in the
+  host environment can no longer break the CLI's own login. The recipe's notes spell out the whole
+  chain (balance row off because the API key needs a paid account; `null` because presence is
+  identity), and the free models were verified through the CLI with a clean environment, answering
+  from `step-5-preview` and `hy3`.
+
 ## 0.4.4
 
 - **WorkBuddy's balance row is off.** Its endpoints answer for an account API key, and issuing one

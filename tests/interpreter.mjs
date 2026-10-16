@@ -44,5 +44,20 @@ check('a recipe with no run.env inherits the environment untouched',
 check('a non-string env value is ignored rather than injected',
   resolveRunEnv({ run: { env: { BAD: 5 } } }, cliExe, {}).BAD === undefined)
 
+/* ---- null means: keep this variable OUT of the child ------------------------
+ * Presence alone can be identity. WorkBuddy reads ANY CODEBUDDY_AUTH_TOKEN — even
+ * an empty one (measured: it reported token-length:1 and then answered 401) — as its
+ * own credential, and a non-Latin1 value kills every run before a request leaves,
+ * with a perfectly good stored login sitting right behind it. So a recipe must be
+ * able to say "not this one". */
+const stale = { CODEBUDDY_AUTH_TOKEN: 'leftover-from-the-host', KEEP: 'old' }
+const dropped = resolveRunEnv({ run: { env: { CODEBUDDY_AUTH_TOKEN: null, KEEP: 'y' } } }, cliExe, stale)
+check('null removes the variable from the child environment', !('CODEBUDDY_AUTH_TOKEN' in dropped))
+check('and still sets the variables the recipe does name', dropped.KEEP === 'y')
+check('and leaves the rest of the parent environment alone',
+  resolveRunEnv({ run: { env: { GONE: null } } }, cliExe, { GONE: '1', STAY: '2' }).STAY === '2')
+check('a null does not mutate the environment it was handed',
+  stale.CODEBUDDY_AUTH_TOKEN === 'leftover-from-the-host')
+
 console.log(failures ? `\n${failures} failure(s)` : '\nall good')
 process.exit(failures ? 1 : 0)
