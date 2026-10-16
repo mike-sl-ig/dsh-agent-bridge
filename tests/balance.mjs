@@ -3,7 +3,7 @@
  * prove the balance says so instead of showing a number.
  */
 
-import { normalizeBalance, readBalance } from '../lib/balance.js'
+import { credentialHeaders, normalizeBalance, readBalance } from '../lib/balance.js'
 
 let failures = 0
 const check = (name, ok, detail) => {
@@ -65,6 +65,47 @@ check('a recipe with no balance block is unsupported', unsupported.state === 'un
 
 const readOnly = await readBalance(recipe, { token: 't', httpJson: async (s, call) => (call.path === '/console/accounts' ? { data: { accounts: [{}] } } : { data: [] }) })
 check('the balance has no write capability', readOnly.write === undefined)
+
+/* ---- the credential must reach the wire, not merely be counted ---------- */
+check('no credential means no header at all', Object.keys(credentialHeaders(spec, '')).length === 0)
+check('whitespace is not a credential', Object.keys(credentialHeaders(spec, '   ')).length === 0)
+check('a cookie-shaped value travels as Cookie',
+  credentialHeaders(spec, 'SESSION=abc; sid=2').Cookie === 'SESSION=abc; sid=2')
+check('a bare token travels as a bearer credential',
+  credentialHeaders(spec, 'sk-live-123').Authorization === 'Bearer sk-live-123')
+check('a recipe can name the header itself',
+  credentialHeaders({ auth: { header: 'X-Api-Key' } }, 'k1')['X-Api-Key'] === 'k1')
+check('and name the prefix too',
+  credentialHeaders({ auth: { header: 'Authorization', prefix: 'Token ' } }, 'k2').Authorization === 'Token k2')
+
+const realFetch = globalThis.fetch
+let sent = []
+globalThis.fetch = async (url, init) => {
+  sent.push({ url: String(url), headers: (init && init.headers) || {} })
+  return {
+    ok: true,
+    status: 200,
+    json: async () => (String(url).includes('/console/accounts') ? { data: { accounts: [{ uid: 1 }] } } : { data: rows }),
+  }
+}
+try {
+  const wired = await readBalance(recipe, { token: 'SESSION=abc; sid=2' })
+  check('the default transport really issues both calls', sent.length === 2, JSON.stringify(sent.map((s) => s.url)))
+  check('both calls carry the cookie', sent.every((s) => s.headers.Cookie === 'SESSION=abc; sid=2'))
+  check('the summary is still a POST with a JSON body', sent[1].headers['Content-Type'] === 'application/json')
+  check('the wire form still yields a balance', wired.state === 'ok' && wired.remaining === 380)
+
+  sent = []
+  await readBalance(recipe, { token: 'sk-live-123' })
+  check('a bare token reaches the wire as bearer', sent[0].headers.Authorization === 'Bearer sk-live-123')
+
+  sent = []
+  await readBalance({ id: 'wb', balance: { ...spec, auth: { header: 'X-Api-Key', prefix: 'K ' } } }, { token: 'k3' })
+  check('a declared header wins over the auto rule',
+    sent[0].headers['X-Api-Key'] === 'K k3' && !sent[0].headers.Cookie)
+} finally {
+  globalThis.fetch = realFetch
+}
 
 console.log(failures ? `\n${failures} failure(s)` : '\nall good')
 process.exit(failures ? 1 : 0)

@@ -4,21 +4,27 @@
   "vendor": "Tencent",
   "cost": "paid",
   "homepage": "https://www.workbuddy.cn",
-  "notes": "Tencent CodeBuddy Code (genie). This desktop build ships only the headless bundle, so `/login` cannot run from it; the account session was established with the full npm distribution (@tencent-ai/codebuddy-code) launched against THIS install's product.json, and both binaries share the resulting stored session. CRITICAL: the CLI takes its whole product identity from ACC_PRODUCT_CONFIG_PATH (see run.env). The identical relative path inside the npm package holds a CodeBuddy config (www.codebuddy.ai), and the same binary then rejects a WorkBuddy account with 'Authentication required' — which is why discovery ignores PATH and accepts only this install's own entry. Output is a JSON ARRAY of events whose last element is the result.",
+  "notes": "Tencent CodeBuddy Code (genie). This desktop build ships only the headless bundle, so `/login` cannot run from it; the account session was established with the full npm distribution (@tencent-ai/codebuddy-code) launched against THIS install's product.json, and both binaries share the resulting stored session. CRITICAL: the CLI takes its whole product identity from ACC_PRODUCT_CONFIG_PATH (see run.env). The identical relative path inside the npm package holds a CodeBuddy config (www.codebuddy.ai), and the same binary then rejects a WorkBuddy account with 'Authentication required' — which is why discovery ignores PATH and accepts only this install's own entry. Output is a JSON ARRAY of events whose last element is the result. 2026-10-15 LAYOUT CHANGE: the app update replaced cli/dist/* with the lite bundle `dist/codebuddy-lite-wb.mjs`, and the old `bin/codebuddy` launcher now fails in print mode with \"Cannot find module '../dist/codebuddy'\" (its headless bundle is gone). Discovery therefore PREFERS the .mjs entry, which supports both --version and -p, and keeps bin/codebuddy only as a fallback for older installs. Credentials: the CLI accepts CODEBUDDY_AUTH_TOKEN / CODEBUDDY_API_KEY from the environment, but its own stored session is encrypted and this plugin never reads or writes it.",
 
   "discover": {
     "env": ["WORKBUDDY_CLI", "CODEBUDDY_CLI"],
     "paths": {
       "win32": [
+        "%WORKBUDDY_HOME%\\resources\\app.asar.unpacked\\cli\\dist\\codebuddy-lite-wb.mjs",
+        "D:\\work Buddy\\WorkBuddy\\resources\\app.asar.unpacked\\cli\\dist\\codebuddy-lite-wb.mjs",
+        "%LOCALAPPDATA%\\Programs\\WorkBuddy\\resources\\app.asar.unpacked\\cli\\dist\\codebuddy-lite-wb.mjs",
+        "%PROGRAMFILES%\\WorkBuddy\\resources\\app.asar.unpacked\\cli\\dist\\codebuddy-lite-wb.mjs",
         "%WORKBUDDY_HOME%\\resources\\app.asar.unpacked\\cli\\bin\\codebuddy",
         "D:\\work Buddy\\WorkBuddy\\resources\\app.asar.unpacked\\cli\\bin\\codebuddy",
         "%LOCALAPPDATA%\\Programs\\WorkBuddy\\resources\\app.asar.unpacked\\cli\\bin\\codebuddy",
         "%PROGRAMFILES%\\WorkBuddy\\resources\\app.asar.unpacked\\cli\\bin\\codebuddy"
       ],
       "darwin": [
+        "/Applications/WorkBuddy.app/Contents/Resources/app.asar.unpacked/cli/dist/codebuddy-lite-wb.mjs",
         "/Applications/WorkBuddy.app/Contents/Resources/app.asar.unpacked/cli/bin/codebuddy"
       ],
       "linux": [
+        "/opt/WorkBuddy/resources/app.asar.unpacked/cli/dist/codebuddy-lite-wb.mjs",
         "/opt/WorkBuddy/resources/app.asar.unpacked/cli/bin/codebuddy"
       ]
     }

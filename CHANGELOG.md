@@ -1,5 +1,29 @@
 # Changelog
 
+## 0.4.2
+
+- **WorkBuddy followed the 2026-10-15 app update.** That update replaced `cli/dist/*` with the lite
+  bundle `dist/codebuddy-lite-wb.mjs`, and the old `bin/codebuddy` launcher now dies in print mode
+  with `Cannot find module '../dist/codebuddy'` (its headless bundle is gone) — a 0.3s failure with
+  no stderr. Discovery now prefers the `.mjs` entry, which serves both `--version` and `-p`, and
+  keeps `bin/codebuddy` as the fallback for older installs. Verified against the installed CLI:
+  probe `2.161.0`, and a real run answered in 7.1s.
+- **The balance credential now actually travels.** `lib/balance.js` used `CODEBUDDY_AUTH_TOKEN` only
+  as a presence check and then sent the request with no credential header at all, so the endpoint
+  could never answer anything but "unauthenticated". The credential is now attached to both calls: a
+  value that looks like a browser cookie (it contains `=`) travels as `Cookie:`, anything else as
+  `Authorization: Bearer`. A recipe can override that with `balance.auth = { header, prefix }`
+  (validated in `lib/recipe.js`). Guessing wrong costs one honest "unauthenticated" answer, never a
+  wrong number.
+- **`tests/balance.mjs` grew 12 checks** that pin the wire form rather than the intent: the suite
+  stubs `globalThis.fetch` and asserts the cookie/bearer header is on both the login probe and the
+  summary POST (28 checks in that file, 21 files in the suite).
+- **`unauthenticated` now tells the user what to do** — "设置 CODEBUDDY_AUTH_TOKEN（浏览器 Cookie 或
+  API 令牌）" — instead of only explaining why the plugin cannot read the CLI's encrypted credential.
+- **`tests/launch-smoke.mjs` is opt-in** (`LIVE_SMOKE=1`, with `LIVE_SMOKE_MAX_MS` for the limit).
+  It spawns a real CLI, so free-model latency — 117.8s once, for an otherwise perfect run — could
+  paint the whole suite red for a reason unrelated to the launcher.
+
 ## 0.4.1
 
 - **The plugin now says which DSH versions it supports**, instead of loading silently into any of
