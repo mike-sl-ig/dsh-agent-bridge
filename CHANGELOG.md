@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.4.3
+
+- **A credential that cannot travel is refused in words.** A header value has to be ISO-8859-1, and
+  pasting a label or half a line instead of the token is easy — the runtime then fails with
+  `Cannot convert argument to a ByteString because the character at index 21 has a value of 27983`,
+  which tells a user nothing. `lib/balance.js` now checks the credential before the first request and
+  answers `凭据含非 ASCII 字符（第 N 个），HTTP 头无法携带；请重新复制纯 ASCII 的 Cookie 或 API 令牌`
+  instead. Three new checks in `tests/balance.mjs` pin it (no request attempted, the words name the
+  character and the fix): 31 checks in that file, 491 across the suite.
+
 ## 0.4.2
 
 - **WorkBuddy followed the 2026-10-15 app update.** That update replaced `cli/dist/*` with the lite

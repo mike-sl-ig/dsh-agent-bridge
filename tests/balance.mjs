@@ -66,6 +66,18 @@ check('a recipe with no balance block is unsupported', unsupported.state === 'un
 const readOnly = await readBalance(recipe, { token: 't', httpJson: async (s, call) => (call.path === '/console/accounts' ? { data: { accounts: [{}] } } : { data: [] }) })
 check('the balance has no write capability', readOnly.write === undefined)
 
+/* ---- a credential that cannot travel must be refused in words ----------- */
+let attempted = false
+const nonAscii = await readBalance(recipe, {
+  token: 'sk-测试的不是令牌',
+  httpJson: () => { attempted = true; throw new Error('must not be called') },
+})
+check('a non-ASCII credential is refused before any request',
+  nonAscii.state === 'error' && attempted === false, JSON.stringify(nonAscii.detail))
+check('and the words say what is wrong and what to do',
+  nonAscii.detail.includes('非 ASCII') && nonAscii.detail.includes('重新复制'), nonAscii.detail)
+check('and they name the offending character', nonAscii.detail.includes('第 4 个'), nonAscii.detail)
+
 /* ---- the credential must reach the wire, not merely be counted ---------- */
 check('no credential means no header at all', Object.keys(credentialHeaders(spec, '')).length === 0)
 check('whitespace is not a credential', Object.keys(credentialHeaders(spec, '   ')).length === 0)
