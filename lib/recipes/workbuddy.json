@@ -78,13 +78,9 @@
   },
 
   "balance": {
-    "kind": "http",
-    "base": "https://www.workbuddy.cn",
-    "loginProbe": { "method": "GET", "path": "/console/accounts", "pick": "data.accounts" },
-    "summary": { "method": "POST", "path": "/v2/billing/meter/get-user-resource-summary", "body": {} },
-    "map": { "id": "ResourceId", "label": "PackageName", "total": "total", "used": "used" },
-    "unit": "积分",
-    "write": null
+    "kind": "none",
+    "write": null,
+    "note": "WorkBuddy's balance endpoints answer for an account API key, and issuing one needs a paid membership, so on a free account there is nothing this plugin can read — the row stays hidden instead of showing an error the user cannot act on. To turn it back on: set kind to \"http\" and restore base/probe/summary (https://www.workbuddy.cn, GET /console/accounts picking data.accounts, POST /v2/billing/meter/get-user-resource-summary, map ResourceId/PackageName/total/used, unit 积分), then set CODEBUDDY_AUTH_TOKEN to a pure-ASCII key. lib/balance.js refuses a non-ASCII credential with a readable message rather than letting the runtime's ByteString error escape — and note that the same bad variable also breaks *runs*, because the plugin hands the environment to the CLI and the CLI tries to use it as a credential."
   },
 
   "models": ["auto"],

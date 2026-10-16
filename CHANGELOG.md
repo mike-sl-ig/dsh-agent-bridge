@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.4.4
+
+- **WorkBuddy's balance row is off.** Its endpoints answer for an account API key, and issuing one
+  needs a paid membership, so on a free account the row could only ever show an error the user
+  cannot act on. The recipe now declares `balance.kind = "none"` — state `unsupported`, no row
+  rendered — while keeping `"write": null` so the file still proves it cannot mutate an account. The
+  read-only definition that used to be there (base, probe, summary, map, unit) is preserved in the
+  block's `note` for whoever turns it back on.
+- **Recorded in that note, because it cost real time:** a non-ASCII `CODEBUDDY_AUTH_TOKEN` breaks
+  *runs*, not just the balance row. The plugin hands its environment to the CLI, the CLI used the
+  value as a credential, and the runtime threw `Cannot convert argument to a ByteString ... 27983`
+  before any request left — a free model failed with exactly that message. Deleting the variable
+  restores the CLI's own stored login; 0.4.3's guard only covers the balance path.
+
 ## 0.4.3
 
 - **A credential that cannot travel is refused in words.** A header value has to be ISO-8859-1, and

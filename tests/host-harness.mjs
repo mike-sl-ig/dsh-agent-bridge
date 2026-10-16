@@ -421,7 +421,10 @@ check('the legacy modelIds array is still there', wbAgent && Array.isArray(wbAge
 check('the model ids match the models', wbAgent && wbAgent.models.every((m) => wbAgent.modelIds.includes(m.id)))
 check('every model carries a tier', wbAgent && wbAgent.models.every((m) => ['free', 'paid', 'unknown'].includes(m.tier)))
 check('the balance state is present', wbAgent && ['ok', 'unauthenticated', 'unsupported', 'error'].includes(wbAgent.balance.state))
-check('with no token the balance is unauthenticated', wbAgent && wbAgent.balance.state === 'unauthenticated')
+// WorkBuddy's balance answers for a paid account's API key, so the recipe now
+// declares no source at all: the row is hidden instead of showing an error the
+// free account cannot act on.
+check('a recipe with no readable balance says unsupported', wbAgent && wbAgent.balance.state === 'unsupported')
 
 /* ---- advisory reminders ride the agent/pre-step waterfall ---- */
 check('the bridge subscribes to agent/pre-step', typeof listeners.get('agent/pre-step') === 'function')
